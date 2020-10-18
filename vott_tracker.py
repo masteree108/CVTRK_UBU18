@@ -5,9 +5,11 @@ import write_vott_id_json as WVIJ
 import cv_tracker as CVTR 
 import log as PYM
 import threading 
+from tkinter import messagebox
 
 ROI_get_bbox = False 
 py_name = 'vott_tracker' 
+log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
 
 class Worker(threading.Thread):
     def __init__(self,num, lock, cvtr, rvij, wvij, send_data, pym):
@@ -100,6 +102,8 @@ def shut_down_log(pym, rvij, wvij, cvtr):
     rvij.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
+    os.remove(log_path)
+    messagebox.showinfo("vott tracker", "track object successfully!!")
     sys.exit()
 
 def RVIJ_class_new_and_initial(json_file_path):
@@ -213,15 +217,16 @@ def main(target_path, json_file_path, video_path, algorithm):
         thread_list[i].join()
     shut_down_log(pym, rvij, wvij, cvtr)
 
-def read_file_name_path(target_path):
+def read_file_name_path_from_vott_log(target_path):
     # file ex:
-    # file:/home/ivan/HD1/hd/VoTT/Drone_Project/Drone_Source/001/Drone_001.mp4#t=305.533333,76a8e999e2d9232d8e26253551acb4b3-asset.json
+    # file:/home/ivan/HD1/hd/VoTT/Drone_Project/Drone_Source/001/Drone_001.mp4#t=305.533333,76a8e999e2d9232d8e26253551acb4b3-asset.json,time
 
     if os.path.exists(target_path):
         pym.PY_LOG(False, 'D', py_name, 'target_path: %s existed!' % target_path)                                                                         
     else:
         pym.PY_LOG(False, 'E', py_name, 'target_path: %s is not existed!' % target_path)
         sys.exit()
+        return False, "","",""
 
     f = open(target_path, "r") 
     # remove file:
@@ -234,10 +239,13 @@ def read_file_name_path(target_path):
     video_path = path[:vc]
     pym.PY_LOG(False, 'D', py_name, 'video_path: %s' % video_path)
 
-    # get json file(this file will be crated when user used vott to label object)
+    # get json file(this file will be created when user used vott to label object)
     vc = path.find(',')
     file_name = path[vc+1:]
-    pym.PY_LOG(False, 'D', py_name, 'file_name: %s' % file_name)
+    pym.PY_LOG(False, 'D', py_name, 'file_name with time: %s' % file_name)
+    vc = file_name.find(',')
+    file_name = file_name[:vc]
+    pym.PY_LOG(False, 'D', py_name, 'file_name without time: %s' % file_name)
     
     # replace Dorne_Source to Drone_Target because from video path,
     # because we need to get the json file at Drone_Target/target_name folder
@@ -253,7 +261,7 @@ def read_file_name_path(target_path):
     pym.PY_LOG(False, 'D', py_name, 'target_path: %s' % target_path)
     json_file_path = target_path + file_name
     pym.PY_LOG(False, 'D', py_name, 'json_file_path: %s' % json_file_path)
-    return video_path, target_path, json_file_path
+    return True, video_path, target_path, json_file_path
 
 
 
@@ -261,8 +269,7 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True)  
 
-    target_path = '../../Drone_Project/Drone_Target/for_python_path.log'
-    video_path, target_path, json_file_path = read_file_name_path(target_path)
+    vott_log_ok, video_path, target_path, json_file_path = read_file_name_path_from_vott_log(log_path)
     #if len(sys.argv[1]) > 1:
         #file_path = file_path + sys.argv[1]
         #print("file_path: %s" % file_path)
@@ -272,4 +279,5 @@ if __name__ == '__main__':
 
     arrived_next_frame = False 
     algorithm = 'CSRT'
-    main(target_path, json_file_path, video_path, algorithm)
+    if vott_log_ok:
+        main(target_path, json_file_path, video_path, algorithm)

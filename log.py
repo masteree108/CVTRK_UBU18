@@ -33,21 +33,21 @@ class Worker(threading.Thread):
             if msg[:6] == '__SD__':
                 break
             #time.sleep(1)
-
+        
 class LOG():
 
 #public
     def __init__(self, export):
         self.level = ['E', 'W', 'D']
         self.export = export
-        self.log_dir = './log/'
+        self.log_dir = './NTUT/log/'
         self.log_name = 'log.txt'
         self.log_path = self.log_dir + self.log_name
 
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
             if not os.path.isfile(self.log_path):
-                os.makefile(self.log_name)
+                os.mknod(self.log_name)
         
         self.log_path = self.log_dir + self.log_name
         self.lock = threading.Lock()
@@ -55,9 +55,9 @@ class LOG():
         self.log_worker1 = Worker(self.log_queue, 1, self.lock, self.log_path)
         self.log_worker1.start()
     
-    def __del__(self):
+    #def __del__(self):
         #print("LOG __del__")
-        self.log_worker1.join()
+        #self.log_worker1.join()
 
     def PY_LOG(self, exit_log, level, py_name, message):
         
@@ -75,6 +75,7 @@ class LOG():
             if exit_log:
                 # shutdown saving log
                 self.log_queue.put( "__SD__" + str(now) + " , " + str(self.message_combine))
+                self.log_worker1.join()
             else:
                 self.log_queue.put(str(now) + " , " + str(self.message_combine))
                 
