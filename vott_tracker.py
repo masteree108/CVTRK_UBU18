@@ -22,7 +22,7 @@ class Worker(threading.Thread):
         self.frame_counter = send_data[0]
         self.vott_video_fps = send_data[1]
         self.now_frame_timestamp_DP = send_data[2]
-        self.bbox = send_data[3]
+        self.bboxes = send_data[3]
         self.json_file_path = send_data[4]
         self.pym = pym
     def run(self):
@@ -31,14 +31,14 @@ class Worker(threading.Thread):
             self.lock.acquire()
             now_format = self.cvtr.get_now_format_value(self.frame_counter, self.vott_video_fps)
             deal_with_name_format_path(self.rvij, self.wvij, self.now_frame_timestamp_DP, now_format)
-            deal_with_BX_PT(self.wvij, self.bbox) 
-            self.wvij.create_id_json_file(self.json_file_path)
+            deal_with_BX_PT(self.wvij, self.bboxes) 
+            self.wvij.create_id_asset_json_file(self.json_file_path)
             self.lock.release()
         except:
             self.pym.PY_LOG(True, 'E', py_name, "Worker num:%d failed" % self.num)
             
 
-def fill_previous_data_to_write_json(rvij, wvij):
+def fill_parent_and_tags_to_write_json(rvij, wvij):
     
     wvij.save_parent_id(rvij.get_parent_id())
     wvij.save_parent_name(rvij.get_parent_name())
@@ -46,7 +46,7 @@ def fill_previous_data_to_write_json(rvij, wvij):
     
     wvij.save_tags(rvij.get_tags())
 
-    pym.PY_LOG(False, 'D', py_name , 'fill previous data ok')
+    pym.PY_LOG(False, 'D', py_name , 'fill parent data and tags ok')
 
   
 def deal_with_name_format_path(rvij, wvij, now_frame_timestamp_DP, now_format): 
@@ -82,20 +82,18 @@ def deal_with_name_format_path(rvij, wvij, now_frame_timestamp_DP, now_format):
     wvij.save_timestamp(now_timestamp)
 
 
-def deal_with_BX_PT(wvij, bbox): 
-    BX = []
-    BX.append(bbox[3])  #height BX[0]
-    BX.append(bbox[2])  #width BX[1]
-    BX.append(bbox[0])  #left BX[2]
-    BX.append(bbox[1])  #top BX[3]
-
-    wvij.save_boundingBox(BX)
-
-    PT =[]
-    PT.append(BX[1]+BX[2])
-    PT.append(BX[0]+BX[3])
-    wvij.save_points(PT)
-
+def deal_with_BX_PT(wvij, bboxes): 
+    BX = [0,0,0,0]
+    PT = [0,0]
+    for i, bbox in enumerate(bboxes):
+        BX[0] = bbox[3]  # height BX[0]
+        BX[1] = bbox[2]  # width BX[1]
+        BX[2] = bbox[0]  # left BX[2]
+        BX[3] = bbox[1]  # top BX[3]
+        PT[0] = BX[1]+BX[2]
+        PT[1] = BX[0]+BX[3]
+        wvij.save_boundingBox(BX, i)
+        wvij.save_points(PT, i)
 
 def shut_down_log(pym, rvij, wvij, cvtr):
     pym.PY_LOG(True, 'D', py_name, '__done___')
@@ -109,23 +107,21 @@ def shut_down_log(pym, rvij, wvij, cvtr):
 def RVIJ_class_new_and_initial(json_file_path):
     # get video's time that VoTT user to label track object 
     timestamp = 0
-    bbox = ()
 
     # class rvij that is about reading data from json file
     rvij = RVIJ.read_vott_id_json(json_file_path)
-
+    
     # read data
     rvij.read_from_id_json_data()
 
-    # get bounding box position
     timestamp = rvij.get_timestamp()
-    get_bbox = rvij.get_boundingBox()
-    bbox = (get_bbox[0], get_bbox[1], get_bbox[2],  get_bbox[3])
 
+    # get bounding box position
+    bbox = rvij.get_boundingBox()
     return rvij, timestamp, bbox
 
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bbox):
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -134,7 +130,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bbox):
     # pos2: save viedo with bbox     
     # ROI_get_bbox just a tester to test tracking function
     image_debug = [1, 0, 0]
-    cvtr = CVTR.CV_TRACKER(algorithm, video_path, timestamp, bbox, image_debug, ROI_get_bbox)
+    cvtr = CVTR.CV_TRACKER(algorithm, video_path, timestamp, bboxes, image_debug)
     return cvtr
 
 
@@ -156,17 +152,17 @@ def get_loop_number_and_judge_interval(cvtr, vott_video_fps):
 def main(target_path, json_file_path, video_path, algorithm):
     
     # initial class RVIJ
-    rvij, timestamp, bbox = RVIJ_class_new_and_initial(json_file_path) 
-    
+    rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
+
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bbox)
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes)
     
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
-    
+
     # saving some data from json file for into new json file using 
-    fill_previous_data_to_write_json(rvij, wvij)
-    
+    fill_parent_and_tags_to_write_json(rvij, wvij)
+
     # reading and setting
     vott_video_fps = 15
     frame_counter = cvtr.get_label_frame_number(rvij.get_asset_format(), vott_video_fps)
@@ -180,9 +176,12 @@ def main(target_path, json_file_path, video_path, algorithm):
 
     loop_counter = 0
     loop_num = loop_num_interval
+
+    # for saving data to json file
     json_file_lock = threading.Lock()  
     thread_counter = 0
     thread_list = []
+
     for loop_counter in range(source_video_fps):
         try:
             frame = cvtr.capture_video_frame()
@@ -193,14 +192,14 @@ def main(target_path, json_file_path, video_path, algorithm):
                 if frame_counter < vott_video_fps:                 
                     pym.PY_LOG(False, 'D', py_name, 'frame_counter: %.2f start' % frame_counter)
                     now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter, vott_video_fps)
-                    bbox = cvtr.draw_boundbing_box_and_get(frame)
-                    
+                    bboxes = cvtr.draw_boundbing_box_and_get(frame)
+
                     # dealing with data and saving to a new json file
                     send_data = []
                     send_data.append(frame_counter)
                     send_data.append(vott_video_fps)
                     send_data.append(now_frame_timestamp_DP)
-                    send_data.append(bbox)
+                    send_data.append(bboxes)
                     send_data.append(json_file_path)
                     thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, wvij, send_data, pym))
                     thread_list[thread_counter].start()
@@ -212,7 +211,6 @@ def main(target_path, json_file_path, video_path, algorithm):
                 thread_list[i].join()
             shut_down_log(pym, rvij, wvij, cvtr)
             break
-
     for i in range(thread_counter):
         thread_list[i].join()
     shut_down_log(pym, rvij, wvij, cvtr)

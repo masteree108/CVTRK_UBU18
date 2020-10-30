@@ -1,6 +1,7 @@
 import cv2
 import sys
 import enum
+from random import randint
 import log as PYM
 
 
@@ -29,7 +30,8 @@ class CV_TRACKER():
     __video_cap = 0
     __tracker = 0
     __image_debug = [0,0,0,0]
-       
+    __bbox_colors = []
+
     def __get_algorithm_tracker(self, algorithm):
         
         if algorithm == 'BOOSTING':
@@ -63,7 +65,7 @@ class CV_TRACKER():
         cv2.waitKey(wk_value)
 
 # public
-    def __init__(self, algorithm, video_path, label_object_time_in_video, bbox, image_debug, ROI_get_bbox):
+    def __init__(self, algorithm, video_path, label_object_time_in_video, bboxes, image_debug):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)      
 
@@ -80,16 +82,19 @@ class CV_TRACKER():
         # self.video_cap.set(cv2.CAP_PROP_POS_MSEC, 50000)
         # self.__video_cap.set(cv2.CAP_PROP_FPS, 15)  #set fps to change video,but not working!!
 
-        # 3. setting tracker algorithm and init
-        self.__tracker =  self.__get_algorithm_tracker(algorithm) 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
+        # 3. setting tracker algorithm and init(one object also can use)
         frame = self.capture_video_frame()
+        self.__tracker = cv2.MultiTracker_create()
+        for bbox in bboxes:
+            self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+            self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
 
-        if ROI_get_bbox:
-           bbox = self.use_ROI_select('ROI_select', frame)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
+       
+       # 20201025 ROI function is not maintained
+        #if ROI_get_bbox:
+          # bbox = self.use_ROI_select('ROI_select', frame)
 
-        self.__tracker.init(frame, bbox)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'openCV tracker initial ok')
     
         # 4. for debuging
         self.__image_debug[IMAGE_DEBUG.SW_VWB.value] = image_debug[0]
@@ -155,12 +160,14 @@ class CV_TRACKER():
 
        
     def draw_boundbing_box_and_get(self, frame):
-        ok, bbox = self.__tracker.update(frame)
+        ok, bboxes = self.__tracker.update(frame)
         if ok:
-            p1 = (int(bbox[0]), int(bbox[1]))
-            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            # below rectangle last parament = return frame picture
-            cv2.rectangle(frame, p1, p2, (255, 0 ,0 ), 2, 0)
+            for i, newbox in enumerate(bboxes):
+                p1 = (int(newbox[0]), int(newbox[1]))
+                p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
+                # below rectangle last parament = return frame picture
+                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
+            
         else:
             if self.image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
                self.image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
@@ -174,7 +181,7 @@ class CV_TRACKER():
             # showing video with bounding box
             self.__show_video_with_bounding_box(self.window_name ,frame, 1)
          
-        return bbox
+        return bboxes
 
     def use_waitKey(self, value):
         cv2.waitKey(value)

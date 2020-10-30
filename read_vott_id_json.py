@@ -16,25 +16,25 @@ class VIDEO_SIZE(enum.Enum):
 
 class read_vott_id_json():
 # private
-    __asset_id = ""
-    __asset_format = ""
-    __asset_name = ""
-    __asset_path = ""
+    __asset_id = ''
+    __asset_format = ''
+    __asset_name = ''
+    __asset_path = ''
     __video_size = [3840, 2160]
 
-    __parent_id = ""
-    __parent_name = ""
+    __parent_id = ''
+    __parent_name = ''
 
-    __timestamp = 0
-    __tags = ""
-    __regions_id = ""
-    __boundingBox = [0,0,0,0]
+    __timestamp = ''
+    __tags = []
+    __boundingBox = []
+    __object_num = 0
 
-    def __print_read_parameter_from_json(self):
+    def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__class__, 'asset_id: %s' % self.__asset_id)
         self.pym.PY_LOG(False, 'D', self.__class__, 'asset_format: %s' % self.__asset_format)
         self.pym.PY_LOG(False, 'D', self.__class__, 'asset_name: %s' % self.__asset_name)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_path %s' % self.__asset_path)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_path: %s' % self.__asset_path)
         self.pym.PY_LOG(False, 'D', self.__class__, 'video_width: %d' % self.__video_size[VIDEO_SIZE.W.value])
         self.pym.PY_LOG(False, 'D', self.__class__, 'video_height: %d' % self.__video_size[VIDEO_SIZE.H.value])
 
@@ -43,11 +43,12 @@ class read_vott_id_json():
         self.pym.PY_LOG(False, 'D', self.__class__, 'parent_path: %s' % self.__parent_path)
 
         self.pym.PY_LOG(False, 'D', self.__class__, 'timestamp: %.5f' % self.__timestamp)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'tags: %s' % self.__tags)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box height: %s' % self.__boundingBox[BBOX_ITEM.height.value])
-        self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box width: %s' % self.__boundingBox[BBOX_ITEM.width.value])
-        self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box left: %s' % self.__boundingBox[BBOX_ITEM.left.value])
-        self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box top: %s' % self.__boundingBox[BBOX_ITEM.top.value])
+        for i in range(num):
+            self.pym.PY_LOG(False, 'D', self.__class__, 'tags[%d]:' % i + '%s' % self.__tags[i])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box height[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.height.value])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box width[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.width.value])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
+            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
 
 
 # public
@@ -69,6 +70,7 @@ class read_vott_id_json():
             with open(self.file_path, 'r') as reader:
                 self.pym.PY_LOG(False, 'D', self.__class__, '%s open ok!' % self.file_path)
                 jf = json.loads(reader.read())
+
                 self.__asset_id = jf['asset']['id']
                 self.__asset_format = jf['asset']['format']
                 self.__asset_name = jf['asset']['name']
@@ -81,13 +83,22 @@ class read_vott_id_json():
                 self.__parent_name = jf['asset']['parent']['name']
                 self.__parent_path = jf['asset']['parent']['path']
 
-                self.__tags = jf['regions'][0]['tags'][0]
-                self.__boundingBox[BBOX_ITEM.height.value] = jf['regions'][0]['boundingBox']["height"]
-                self.__boundingBox[BBOX_ITEM.width.value] = jf['regions'][0]['boundingBox']["width"]
-                self.__boundingBox[BBOX_ITEM.left.value] = jf['regions'][0]['boundingBox']["left"]
-                self.__boundingBox[BBOX_ITEM.top.value] = jf['regions'][0]['boundingBox']["top"]
+                # using length of region to judge how many objects in this frame
+                self.__object_num = len(jf['regions'])
+                for i in range(self.__object_num):
+                    self.__tags.append([])
+                    for j in range(len(jf['regions'][i]['tags'])):
+                        self.__tags[i].append(jf['regions'][i]['tags'][j])
+
+                    self.__boundingBox.append([])
+                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["height"])
+                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["width"])
+                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["left"])
+                    self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["top"])
+
                 self.pym.PY_LOG(False, 'D', self.__class__, '%s read ok!' % self.file_path)
-                self.__print_read_parameter_from_json()
+                self.__print_read_parameter_from_json(self.__object_num)
+
                 reader.close() 
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, '%s has wrong format!' % self.file_path)
@@ -124,12 +135,20 @@ class read_vott_id_json():
         return self.__tags
 
     def get_boundingBox(self):
-        BX = [0,0,0,0]
-        BX[0] = self.__boundingBox[BBOX_ITEM.left.value]     #x1=left
-        BX[1] = self.__boundingBox[BBOX_ITEM.top.value]     #y1=top    
-        BX[2] = self.__boundingBox[BBOX_ITEM.width.value]     #x2=width    
-        BX[3] = self.__boundingBox[BBOX_ITEM.height.value]     #y2=height 
-        return BX
+        bbox = [] 
+        for i in range(self.__object_num):
+            bbox.append(())
+            bbox[i] = (self.__boundingBox[i][BBOX_ITEM.left.value]     #x1=left
+                        , self.__boundingBox[i][BBOX_ITEM.top.value]     #y1=top    
+                        , self.__boundingBox[i][BBOX_ITEM.width.value]     #x2=width    
+                        , self.__boundingBox[i][BBOX_ITEM.height.value]     #y2=height
+                        )
+        return bbox
 
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
+
+    
+    def get_object_number(self):
+        return self.__object_num
+

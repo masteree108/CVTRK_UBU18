@@ -31,9 +31,9 @@ class write_vott_id_json():
     __timestamp = 0
         
     __regions_id = ""
-    __tags = ""
-    __boundingBox = [0,0,0,0]
-    __points = [0,0,0,0]
+    __tags = []
+    __boundingBox = []
+    __points = []
 
     def __save_asset_id(self, sid):
         self.__asset_id = sid
@@ -67,9 +67,9 @@ class write_vott_id_json():
     #del __del__(self):
         #deconstructor  
     
-    def create_id_json_file(self, json_file_path):
+    def create_id_asset_json_file(self, json_file_path):
         try:
-            self.__create_shorid_for_regions_id()
+            #self.__create_shorid_for_regions_id()
             new_json_file_path = self.__target_path + self.__asset_id + '-asset.json'
             self.pym.PY_LOG(False, 'D', self.__class__, 'new json file_path: %s' % new_json_file_path)
             shutil.copyfile(json_file_path, new_json_file_path); 
@@ -86,24 +86,31 @@ class write_vott_id_json():
                 #data['asset']['parent']['path'] = self.__parent_path
  
                 data['asset']['timestamp'] = self.__timestamp
-                data['regions'][0]['id'] = self.__regions_id
-                data['regions'][0]['tags'][0] = self.__tags
-                data['regions'][0]['boundingBox']["height"] = self.__boundingBox[0]
-                data['regions'][0]['boundingBox']["width"] = self.__boundingBox[1]
-                data['regions'][0]['boundingBox']["left"] = self.__boundingBox[2]
-                data['regions'][0]['boundingBox']["top"] = self.__boundingBox[3]
 
-                data['regions'][0]['points'][0]["x"] = self.__boundingBox[2]
-                data['regions'][0]['points'][0]["y"] = self.__boundingBox[3]
+                # dealing with part of regions
+                self.__create_shorid_for_regions_id()
                 
-                data['regions'][0]['points'][1]["x"] = self.__points[0]
-                data['regions'][0]['points'][1]["y"] = self.__boundingBox[3]
+                for i in range(len(self.__boundingBox)):
+                    data['regions'][i]['id'] = self.__regions_id
+
+                    for j, tag_value in enumerate(self.__tags[i]):
+                        data['regions'][i]['tags'][j] = tag_value
+
+                    data['regions'][i]['boundingBox']["height"] = self.__boundingBox[i][0]
+                    data['regions'][i]['boundingBox']["width"] = self.__boundingBox[i][1]
+                    data['regions'][i]['boundingBox']["left"] = self.__boundingBox[i][2]
+                    data['regions'][i]['boundingBox']["top"] = self.__boundingBox[i][3]
+                    data['regions'][i]['points'][0]["x"] = self.__boundingBox[i][2]
+                    data['regions'][i]['points'][0]["y"] = self.__boundingBox[i][3]
                 
-                data['regions'][0]['points'][2]["x"] = self.__points[0]
-                data['regions'][0]['points'][2]["y"] = self.__points[1]
+                    data['regions'][i]['points'][1]["x"] = self.__points[i][0]
+                    data['regions'][i]['points'][1]["y"] = self.__boundingBox[i][3]
                 
-                data['regions'][0]['points'][3]["x"] = self.__boundingBox[2]
-                data['regions'][0]['points'][3]["y"] = self.__points[1]
+                    data['regions'][i]['points'][2]["x"] = self.__points[i][0]
+                    data['regions'][i]['points'][2]["y"] = self.__points[i][1]
+                
+                    data['regions'][i]['points'][3]["x"] = self.__boundingBox[i][2]
+                    data['regions'][i]['points'][3]["y"] = self.__points[i][1]
 
                 f.close()
             os.remove(new_json_file_path)
@@ -115,7 +122,7 @@ class write_vott_id_json():
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, 'write VoTT id json file failed!!')
 
-    
+
     def save_asset_format(self, sformat):
         self.__asset_format = sformat
     
@@ -144,18 +151,27 @@ class write_vott_id_json():
     def save_tags(self, tags):
         self.__tags = tags
 
-    def save_boundingBox(self, BX):
-        
-        self.__boundingBox[BBOX_ITEM.height.value] = BX[BBOX_ITEM.height.value]  #height 
-        self.__boundingBox[BBOX_ITEM.width.value] = BX[BBOX_ITEM.width.value]  #width 
-        self.__boundingBox[BBOX_ITEM.left.value] = BX[BBOX_ITEM.left.value]  #left
-        self.__boundingBox[BBOX_ITEM.top.value] = BX[BBOX_ITEM.top.value]  #top
+    def save_boundingBox(self, BX, index):
+        if index == 0:
+            self.__boundingBox = [[0,0,0,0],]
+        else:
+            self.__boundingBox.append([0,0,0,0])
+            
+        self.__boundingBox[index][BBOX_ITEM.height.value] = BX[BBOX_ITEM.height.value]  #height 
+        self.__boundingBox[index][BBOX_ITEM.width.value] = BX[BBOX_ITEM.width.value]  #width 
+        self.__boundingBox[index][BBOX_ITEM.left.value] = BX[BBOX_ITEM.left.value]  #left
+        self.__boundingBox[index][BBOX_ITEM.top.value] = BX[BBOX_ITEM.top.value]  #top
 
-    def save_points(self, PT):
+    def save_points(self, PT, index):
         # POINT x1 = left
         # POINT y1 = top
-        self.__points[POINT_ITEM.x2.value] = PT[POINT_ITEM.x2.value]  #x2
-        self.__points[POINT_ITEM.y2.value] = PT[POINT_ITEM.y2.value]  #y2
+        if index == 0:
+            self.__points = [[0,0],]
+        else:
+            self.__points.append([0,0])
+
+        self.__points[index][POINT_ITEM.x2.value] = PT[POINT_ITEM.x2.value]  #x2
+        self.__points[index][POINT_ITEM.y2.value] = PT[POINT_ITEM.y2.value]  #y2
 
     def shut_down_log(self, msg):
          self.pym.PY_LOG(True, 'D', self.__class__, msg)
