@@ -1,11 +1,26 @@
 Version:
-NTUT_VoTT_2020_10_13_v0.0.1
+NTUT_VoTT_2020_11_05_v0.0.2
 
-Add function:
-tracking one person automatically
+Added function:
+ (NTUT)(EXE) build an vott_tracker.exe for vott to track object
 
-2020/10/13
-test track functionality
+    1.how to build an exe file,please as follows
+      $ ./build_exe.sh
+      execute it will be created vott_tracker.exe file and copied to below path:
+      ../../VoTT_NTUT/UBU18/NTUT/exe/vott_tracker.exe
+      (please note this path is following where downloaded project by repo command)
+
+    2. modified log.py(save_path) file for vott. when user using label tool
+       will be executed vott_tracker.exe and saved log.txt at save_path
+
+    3. doc_and_testcode/run_hello_exe just a test file
+
+    4. the details please refer to the below doc:
+    https://hackmd.io/@NTUTVOTT/HyrJJtDvP
+
+
+2020/11/05
+test auto run vott_tracker.exe, below is results
 ubuntu 18.04: OK, tested by Ivan Yu
 windows 10	: OK, tested by Philip Chiang
 
