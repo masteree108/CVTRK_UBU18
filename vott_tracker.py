@@ -10,9 +10,10 @@ from tkinter import messagebox
 ROI_get_bbox = False 
 py_name = 'vott_tracker' 
 log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
+data_for_next_json_file = []
 
 class Worker(threading.Thread):
-    def __init__(self,num, lock, cvtr, rvij, wvij, send_data, pym):
+    def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
         threading.Thread.__init__(self)
         self.num = num 
         self.lock = lock
@@ -20,17 +21,16 @@ class Worker(threading.Thread):
         self.rvij = rvij
         self.wvij = wvij
         self.frame_counter = send_data[0]
-        self.vott_video_fps = send_data[1]
-        self.now_frame_timestamp_DP = send_data[2]
-        self.bboxes = send_data[3]
-        self.json_file_path = send_data[4]
+        self.now_frame_timestamp_DP = send_data[1]
+        self.bboxes = send_data[2]
+        self.json_file_path = send_data[3]
         self.pym = pym
     def run(self):
         try:
             self.pym.PY_LOG(False, 'D', py_name, "Worker num:%d __run__" % self.num)
             self.lock.acquire()
-            now_format = self.cvtr.get_now_format_value(self.frame_counter, self.vott_video_fps)
-            deal_with_name_format_path(self.rvij, self.wvij, self.now_frame_timestamp_DP, now_format)
+            now_format = self.cvtr.get_now_format_value(self.frame_counter)
+            deal_with_name_format_path(self.wvij, self.cvtr, self.now_frame_timestamp_DP, now_format)
             deal_with_BX_PT(self.wvij, self.bboxes) 
             self.wvij.create_id_asset_json_file(self.json_file_path)
             self.lock.release()
@@ -49,13 +49,12 @@ def fill_parent_and_tags_to_write_json(rvij, wvij):
     pym.PY_LOG(False, 'D', py_name , 'fill parent data and tags ok')
 
   
-def deal_with_name_format_path(rvij, wvij, now_frame_timestamp_DP, now_format): 
+def deal_with_name_format_path(wvij, cvtr, now_frame_timestamp_DP, now_format): 
     
     pym.PY_LOG(False, 'D', py_name, 'now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
     pym.PY_LOG(False, 'D', py_name, 'now_fromat: %s' % now_format)
-    org_asset_name = rvij.get_asset_name()
-    org_timestamp = rvij.get_timestamp()
-    org_asset_path = rvij.get_asset_path()
+
+    org_asset_name, org_timestamp, org_asset_path = get_data_for_next_json_file()
     pym.PY_LOG(False, 'D', py_name, 'org_asset_name: %s' % org_asset_name)
     pym.PY_LOG(False, 'D', py_name, 'org_timestamp: %.5f' % org_timestamp)
     pym.PY_LOG(False, 'D', py_name, 'org_asset_path: %s' % org_asset_path)
@@ -74,6 +73,12 @@ def deal_with_name_format_path(rvij, wvij, now_frame_timestamp_DP, now_format):
     org_asset_path = org_asset_path[:path_count+1]     
     now_asset_path = org_asset_path + now_timestamp
     pym.PY_LOG(False,'D', py_name, 'now_frame_asset_path: %s' % now_asset_path)
+
+    cmp_tp = cvtr.get_every_second_last_frame_timestamp()
+    pym.PY_LOG(False,'D', py_name, 'cmp_tp: %s' % str(cmp_tp))
+    if cmp_tp == now_frame_timestamp_DP:
+        # if vott video fps = 15, cmp_tp = 0.933333
+        deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path)
 
     #this function will be created id via path by md5 method 
     wvij.save_asset_path(now_asset_path)
@@ -100,7 +105,7 @@ def shut_down_log(pym, rvij, wvij, cvtr):
     rvij.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
-    os.remove(log_path)
+    #os.remove(log_path)
     messagebox.showinfo("vott tracker", "track object successfully!!")
     sys.exit()
 
@@ -116,12 +121,50 @@ def RVIJ_class_new_and_initial(json_file_path):
 
     timestamp = rvij.get_timestamp()
 
+    update_data_for_next_json_file(rvij.get_asset_name() , \
+                                    rvij.get_timestamp() , \
+                                    rvij.get_asset_path())
+
     # get bounding box position
     bbox = rvij.get_boundingBox()
     return rvij, timestamp, bbox
 
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes):
+def update_data_for_next_json_file(asset_name, timestamp, asset_path):
+    global data_for_next_json_file 
+    data_for_next_json_file = []
+    data_for_next_json_file.append(asset_name)
+    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) asset name: %s' % asset_name)
+    data_for_next_json_file.append(timestamp)
+    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) timestamp: %s' % timestamp)
+    data_for_next_json_file.append(asset_path)
+    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) asset_path: %s' % asset_path)
+
+
+def deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path):
+    prv_timestamp = int(org_timestamp) + 1
+    pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous timestamp: %s' % str(prv_timestamp))
+   
+    index = org_asset_name.find('=')
+    temp = org_asset_name[:index+1]
+    prv_asset_name = temp + str(prv_timestamp)
+    pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous asset name: %s' % prv_asset_name)
+
+    index = org_asset_path.find('=')
+    temp = org_asset_path[:index+1]
+    prv_asset_path = temp + str(prv_timestamp)
+    pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous asset path: %s' % prv_asset_path)
+
+    update_data_for_next_json_file(prv_asset_name, prv_timestamp, prv_asset_path)
+
+def get_data_for_next_json_file():
+    global data_for_next_json_file
+    asset_name = data_for_next_json_file[0]
+    timestamp = data_for_next_json_file[1]
+    asset_path = data_for_next_json_file[2]
+    return asset_name, timestamp, asset_path
+
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_video_fps):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -130,7 +173,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes):
     # pos2: save viedo with bbox     
     # ROI_get_bbox just a tester to test tracking function
     image_debug = [1, 0, 0]
-    cvtr = CVTR.CV_TRACKER(algorithm, video_path, timestamp, bboxes, image_debug)
+    cvtr = CVTR.CV_TRACKER(algorithm, video_path, timestamp, bboxes, image_debug, vott_video_fps)
     return cvtr
 
 
@@ -149,13 +192,26 @@ def get_loop_number_and_judge_interval(cvtr, vott_video_fps):
     pym.PY_LOG(False, 'D', py_name, 'loop number interval : %.2f' % loop_num_interval)
     return source_video_fps, loop_num_interval
 
-def main(target_path, json_file_path, video_path, algorithm):
+
+def deal_with_data_saveto_newJsonFile(frame_counter, now_frame_timestamp_DP, \
+                                        bboxes, json_file_path):                       
+    # dealing with data and saving to a new json file
+    send_data = []
+    send_data.append(frame_counter)
+    send_data.append(now_frame_timestamp_DP)
+    send_data.append(bboxes)
+    send_data.append(json_file_path)
+    return send_data
+ 
+def main(target_path, json_file_path, video_path, algorithm, other_paras):
     
+    vott_video_fps = 15
+
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
 
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes)
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_video_fps)
     
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
@@ -164,55 +220,62 @@ def main(target_path, json_file_path, video_path, algorithm):
     fill_parent_and_tags_to_write_json(rvij, wvij)
 
     # reading and setting
-    vott_video_fps = 15
-    frame_counter = cvtr.get_label_frame_number(rvij.get_asset_format(), vott_video_fps)
-    if frame_counter == 14:
-        pym.PY_LOG(False, 'W', py_name, 'this is the last frame at this second, so exit auto tracking!!')
-        shut_down_log(pym, rvij, wvij, cvtr)
+    frame_counter = cvtr.get_label_frame_number(rvij.get_asset_format())
+
     pym.PY_LOG(False, 'D', py_name, 'user to label frame number: %d' % frame_counter)
   
     # get soure_video_fps and loop_num_interval 
     source_video_fps, loop_num_interval = get_loop_number_and_judge_interval(cvtr, vott_video_fps)
-
-    loop_counter = 0
-    loop_num = loop_num_interval
-
+    
     # for saving data to json file
     json_file_lock = threading.Lock()  
-    thread_counter = 0
-    thread_list = []
 
-    for loop_counter in range(source_video_fps):
-        try:
-            frame = cvtr.capture_video_frame()
-            if loop_counter >= loop_num and loop_counter <= loop_num + 1:
-                # only pick up 14 frames (frist frame is user using vott to track object) from source video frames
-                frame_counter += 1
-                loop_num = loop_num + loop_num_interval
-                if frame_counter < vott_video_fps:                 
-                    pym.PY_LOG(False, 'D', py_name, 'frame_counter: %.2f start' % frame_counter)
-                    now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter, vott_video_fps)
-                    bboxes = cvtr.draw_boundbing_box_and_get(frame)
+    for tt in range(tracking_time):
+        # for saving data to json file
+        thread_counter = 0
+        thread_list = []
+        
+        if tt > 0:
+            if tt == 1:
+                pym.PY_LOG(False, 'D', py_name, 'first loop over')
+            frame_counter = -1
 
-                    # dealing with data and saving to a new json file
-                    send_data = []
-                    send_data.append(frame_counter)
-                    send_data.append(vott_video_fps)
-                    send_data.append(now_frame_timestamp_DP)
-                    send_data.append(bboxes)
-                    send_data.append(json_file_path)
-                    thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, wvij, send_data, pym))
-                    thread_list[thread_counter].start()
-                    thread_counter += 1
-        except:
-            pym.PY_LOG(False, 'E', py_name, 'main loop has wrong condition!!')
-            cvtr.destroy_debug_window()
-            for i in range(thread_counter):
-                thread_list[i].join()
-            shut_down_log(pym, rvij, wvij, cvtr)
-            break
-    for i in range(thread_counter):
-        thread_list[i].join()
+        first_loop_counter, loop_num = cvtr.get_loop_counter_and_loop_num(frame_counter)
+        pym.PY_LOG(False, 'D', py_name, 'first_loop_counter: %d' % first_loop_counter)
+
+        for loop_counter in range(first_loop_counter, source_video_fps+1):
+            try:
+                frame = cvtr.capture_video_frame()
+                if loop_counter >= loop_num and loop_counter <= loop_num + 1:
+                    # first loop at most only pick up 14 frames (frist frame is user using vott to track object) from source video frames
+                    frame_counter += 1
+                    loop_num = loop_num + loop_num_interval
+                    if frame_counter < vott_video_fps:                 
+                        pym.PY_LOG(False, 'D', py_name, 'frame_counter: %d start' % frame_counter)
+                        now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
+                        pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
+                        bboxes = cvtr.draw_boundbing_box_and_get(frame)
+                        # dealing with data and saving to a new json file
+                        send_data = deal_with_data_saveto_newJsonFile(frame_counter, \
+                                                            now_frame_timestamp_DP, \
+                                                            bboxes, json_file_path) 
+
+                        thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, wvij, send_data, pym))
+                        thread_list[thread_counter].start()
+                        thread_counter += 1
+
+            except:
+                pym.PY_LOG(False, 'E', py_name, 'main loop has wrong condition!!')
+                cvtr.destroy_debug_window()
+                for i in range(thread_counter):
+                    thread_list[i].join()
+                shut_down_log(pym, rvij, wvij, cvtr)
+                break
+
+        for i in range(thread_counter):
+            # run 1 sec, delete all threads
+            thread_list[i].join()
+
     shut_down_log(pym, rvij, wvij, cvtr)
 
 def read_file_name_path_from_vott_log(target_path):
@@ -224,7 +287,7 @@ def read_file_name_path_from_vott_log(target_path):
     else:
         pym.PY_LOG(False, 'E', py_name, 'target_path: %s is not existed!' % target_path)
         sys.exit()
-        return False, "","",""
+        return False, "","","",""
 
     f = open(target_path, "r") 
     # remove file:
@@ -241,6 +304,16 @@ def read_file_name_path_from_vott_log(target_path):
     vc = path.find(',')
     file_name = path[vc+1:]
     pym.PY_LOG(False, 'D', py_name, 'file_name with time: %s' % file_name)
+
+    # get tracking_time
+    tracking_time = 1
+    vc_tt = file_name.find(',')
+    temp = file_name[vc_tt+1:]
+    vc_tt = temp.find(',')
+    tracking_time = int(temp[vc_tt+1:])
+    pym.PY_LOG(False, 'D', py_name, 'tracking_time: %d' % tracking_time)
+     
+
     vc = file_name.find(',')
     file_name = file_name[:vc]
     pym.PY_LOG(False, 'D', py_name, 'file_name without time: %s' % file_name)
@@ -259,15 +332,16 @@ def read_file_name_path_from_vott_log(target_path):
     pym.PY_LOG(False, 'D', py_name, 'target_path: %s' % target_path)
     json_file_path = target_path + file_name
     pym.PY_LOG(False, 'D', py_name, 'json_file_path: %s' % json_file_path)
-    return True, video_path, target_path, json_file_path
+    return True, video_path, target_path, json_file_path, tracking_time
 
 
 
 if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True)  
-
-    vott_log_ok, video_path, target_path, json_file_path = read_file_name_path_from_vott_log(log_path)
+    other_paras = []
+    vott_log_ok, video_path, target_path, json_file_path, tracking_time= read_file_name_path_from_vott_log(log_path)
+    other_paras.append(tracking_time)
     #if len(sys.argv[1]) > 1:
         #file_path = file_path + sys.argv[1]
         #print("file_path: %s" % file_path)
@@ -278,4 +352,4 @@ if __name__ == '__main__':
     arrived_next_frame = False 
     algorithm = 'CSRT'
     if vott_log_ok:
-        main(target_path, json_file_path, video_path, algorithm)
+        main(target_path, json_file_path, video_path, algorithm, other_paras)

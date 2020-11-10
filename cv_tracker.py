@@ -31,7 +31,10 @@ class CV_TRACKER():
     __tracker = 0
     __image_debug = [0,0,0,0]
     __bbox_colors = []
-
+    __vott_video_fps = 0
+    __15fps_loop_counter = [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
+    __15fps_loop_num = [ 1.93, 3.87, 5.80, 7.73, 9.67, 11.60, 13.53, 17.40, 19.33, 21.27, 23.20, 25.13, 27.07, 29, 30.93]
+    
     def __get_algorithm_tracker(self, algorithm):
         
         if algorithm == 'BOOSTING':
@@ -65,7 +68,7 @@ class CV_TRACKER():
         cv2.waitKey(wk_value)
 
 # public
-    def __init__(self, algorithm, video_path, label_object_time_in_video, bboxes, image_debug):
+    def __init__(self, algorithm, video_path, label_object_time_in_video, bboxes, image_debug, vott_video_fps):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)      
 
@@ -112,6 +115,9 @@ class CV_TRACKER():
         
         self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
 
+        # 6. get vott video fps
+        self.__vott_video_fps = vott_video_fps
+
     #del __del__(self):
         #deconstructor     
 
@@ -127,8 +133,9 @@ class CV_TRACKER():
         return frame
 
     
-    def get_label_frame_number(self, format_value, fps):
+    def get_label_frame_number(self, format_value):
         # check which frame that user use VoTT tool to label
+        fps = self.__vott_video_fps
         if fps == 15:
             return self.__check_which_frame_number(format_value, self.__format_15fps)
         # for adding new fps format use, please write it here
@@ -139,8 +146,9 @@ class CV_TRACKER():
             so use 15fps check to get label frame number')
             return self.__check_which_frame_number(format_value, self.__format_15fps)
     
-    def get_now_format_value(self, frame_count, fps):
+    def get_now_format_value(self, frame_count):
         # check which frame that user use VoTT tool to label
+        fps = self.__vott_video_fps 
         if fps == 15:
             return self.__format_15fps[frame_count]
         # for adding new fps format use, please write it here
@@ -202,7 +210,8 @@ class CV_TRACKER():
         self.pym.PY_LOG(False, 'D', self.__class__, 'video length: %.5f secs' % video_length)
         self.pym.PY_LOG(False, 'D', self.__class__, '===== source video format over =====')
     
-    def get_now_frame_timestamp_DP(self, frame_count, fps):
+    def get_now_frame_timestamp_DP(self, frame_count):
+        fps = self.__vott_video_fps
         if fps == 15:
             return self.__frame_timestamp_DP_15fps[frame_count]
         #elif fps == 30: 
@@ -212,8 +221,9 @@ class CV_TRACKER():
                                                     so use default settings(15fps)')
             return self.__frame_timestamp_DP_15fps[frame_count]
             
-    def get_frame_interval_for_timer_count(self, fps):
+    def get_frame_interval_for_timer_count(self):
         frame_interval = 0.1
+        fps = self.__vott_video_fps
         if fps == 15:
             # 1 sec(15 frames) interval = 1/15 = 0.066667
             frame_interval = 0.066667
@@ -239,4 +249,20 @@ class CV_TRACKER():
 
     def get_source_video_fps(self):
         return int(self.__video_cap.get(cv2.CAP_PROP_FPS))
+
+    def get_every_second_last_frame_timestamp(self):
+        fps = self.__vott_video_fps
+        if fps == 15:
+            return self.__frame_timestamp_DP_15fps[fps - 1]     
+        else:
+            # default = 15
+            return self.__frame_timestamp_DP_15fps[fps - 1]   
+
+    def get_loop_counter_and_loop_num(self, frame_counter):
+        fps = self.__vott_video_fps
+        fc = frame_counter
+        if frame_counter < 0:
+            fc = 0
+        if fps == 15:
+            return self.__15fps_loop_counter[fc], self.__15fps_loop_num[fc]
 
