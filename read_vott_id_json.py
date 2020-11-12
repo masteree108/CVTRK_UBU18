@@ -25,7 +25,7 @@ class read_vott_id_json():
     __parent_id = ''
     __parent_name = ''
 
-    __timestamp = ''
+    __timestamp = 0.01
     __tags = []
     __boundingBox = []
     __object_num = 0
@@ -51,6 +51,11 @@ class read_vott_id_json():
             self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
 
 
+    def __check_timestamp_format(self):
+        # sometimes timestamp value will appears Double colon("") in the json file,
+        # like "100", so we must change it to float  otherwise will cause this process terminate
+        self.__timestamp = float(self.__timestamp)
+
 # public
     def __init__(self, file_path):
         # below(True) = exports log.txt
@@ -64,6 +69,7 @@ class read_vott_id_json():
 
     #del __del__(self):
         #deconstructor 
+
 
     def read_from_id_json_data(self):
         try:
@@ -97,9 +103,10 @@ class read_vott_id_json():
                     self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["top"])
 
                 self.pym.PY_LOG(False, 'D', self.__class__, '%s read ok!' % self.file_path)
-                self.__print_read_parameter_from_json(self.__object_num)
+                reader.close()
 
-                reader.close() 
+                self.__check_timestamp_format()
+                self.__print_read_parameter_from_json(self.__object_num)
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, '%s has wrong format!' % self.file_path)
             sys.exit()
