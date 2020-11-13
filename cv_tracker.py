@@ -29,7 +29,7 @@ class CV_TRACKER():
 
     __video_cap = 0
     __tracker = 0
-    __image_debug = [0,0,0,0]
+    __image_debug = [0,0,0]
     __bbox_colors = []
     __vott_video_fps = 0
     __15fps_loop_counter = [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
@@ -169,6 +169,7 @@ class CV_TRACKER():
        
     def draw_boundbing_box_and_get(self, frame):
         ok, bboxes = self.__tracker.update(frame)
+        track_success = True
         if ok:
             for i, newbox in enumerate(bboxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
@@ -177,10 +178,13 @@ class CV_TRACKER():
                 cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
             
         else:
-            if self.image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
-               self.image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
-               self.image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
+            track_success = False
+            bboxes = [0,0,0,0]
+            if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
+               self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
+               self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
                 cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 3, 255), 2)
+                self.pym.PY_LOG(False, 'W', self.__class__, 'Tarcking failre detected')
             else:
                 self.pym.PY_LOG(False, 'W', self.__class__, 'Tarcking failre detected')
                 
@@ -189,7 +193,7 @@ class CV_TRACKER():
             # showing video with bounding box
             self.__show_video_with_bounding_box(self.window_name ,frame, 1)
          
-        return bboxes
+        return bboxes, track_success
 
     def use_waitKey(self, value):
         cv2.waitKey(value)

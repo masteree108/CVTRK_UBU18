@@ -11,6 +11,7 @@ ROI_get_bbox = False
 py_name = 'vott_tracker' 
 log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
 data_for_next_json_file = []
+track_success = True
 
 class Worker(threading.Thread):
     def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
@@ -101,12 +102,16 @@ def deal_with_BX_PT(wvij, bboxes):
         wvij.save_points(PT, i)
 
 def shut_down_log(pym, rvij, wvij, cvtr):
+    global track_success
     pym.PY_LOG(True, 'D', py_name, '__done___')
     rvij.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
     #os.remove(log_path)
-    messagebox.showinfo("vott tracker", "track object successfully!!")
+    if track_success:
+        messagebox.showinfo("vott tracker", "tracking objects successfully!!")
+    else:
+        messagebox.showinfo("vott tracker", "tracking objects failed!!")
     sys.exit()
 
 def RVIJ_class_new_and_initial(json_file_path):
@@ -204,7 +209,7 @@ def deal_with_data_saveto_newJsonFile(frame_counter, now_frame_timestamp_DP, \
     return send_data
  
 def main(target_path, json_file_path, video_path, algorithm, other_paras):
-    
+    global track_success 
     vott_video_fps = 15
 
     # initial class RVIJ
@@ -254,7 +259,10 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                         pym.PY_LOG(False, 'D', py_name, 'frame_counter: %d start' % frame_counter)
                         now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
                         pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
-                        bboxes = cvtr.draw_boundbing_box_and_get(frame)
+                        bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame)
+                        print('test1')
+                        if track_success == False:
+                            break
                         # dealing with data and saving to a new json file
                         send_data = deal_with_data_saveto_newJsonFile(frame_counter, \
                                                             now_frame_timestamp_DP, \
@@ -266,6 +274,7 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
 
             except:
                 pym.PY_LOG(False, 'E', py_name, 'main loop has wrong condition!!')
+                track_success = False
                 cvtr.destroy_debug_window()
                 for i in range(thread_counter):
                     thread_list[i].join()
@@ -273,9 +282,11 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                 break
 
         for i in range(thread_counter):
-            # run 1 sec, delete all threads
+            # run 1 tt loop, delete all threads
             thread_list[i].join()
-
+        
+        if track_success == False:
+            break
     shut_down_log(pym, rvij, wvij, cvtr)
 
 def read_file_name_path_from_vott_log(target_path):
