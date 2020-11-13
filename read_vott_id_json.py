@@ -29,6 +29,7 @@ class read_vott_id_json():
     __tags = []
     __boundingBox = []
     __object_num = 0
+    __ids = []
 
     def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__class__, 'asset_id: %s' % self.__asset_id)
@@ -56,6 +57,26 @@ class read_vott_id_json():
         # like "100", so we must change it to float  otherwise will cause this process terminate
         self.__timestamp = float(self.__timestamp)
 
+    def __read_id_from_tags(self):
+        state_table = ['ok', 'no_id', 'same_id']
+        for i, tags in enumerate(self.__tags):
+            for num in range(len(tags)):
+                if tags[num][:3] == 'id_':
+                    self.__ids.append(tags[num])
+                    break
+        # no ID check
+        if len(self.__ids) != len(self.__tags):
+            self.pym.PY_LOG(False, 'D', self.__class__, 'There are no ID')
+            return False, state_table[1]
+             
+        # ID duplicate check
+        if len(self.__ids) != len(set(self.__ids)):
+            self.pym.PY_LOG(False, 'D', self.__class__, 'duplicated ID')
+            return False, state_table[2]
+             
+        self.pym.PY_LOG(False, 'D', self.__class__, 'get ids: %s' % self.__ids)
+        return True, state_table[0]
+
 # public
     def __init__(self, file_path):
         # below(True) = exports log.txt
@@ -71,7 +92,7 @@ class read_vott_id_json():
         #deconstructor 
 
 
-    def read_from_id_json_data(self):
+    def read_data_from_id_json_data(self):
         try:
             with open(self.file_path, 'r') as reader:
                 self.pym.PY_LOG(False, 'D', self.__class__, '%s open ok!' % self.file_path)
@@ -107,6 +128,8 @@ class read_vott_id_json():
 
                 self.__check_timestamp_format()
                 self.__print_read_parameter_from_json(self.__object_num)
+
+                return self.__read_id_from_tags()
         except:
             self.pym.PY_LOG(False, 'E', self.__class__, '%s has wrong format!' % self.file_path)
             sys.exit()
@@ -159,3 +182,5 @@ class read_vott_id_json():
     def get_object_number(self):
         return self.__object_num
 
+    def get_ids(self):
+        return self.__ids

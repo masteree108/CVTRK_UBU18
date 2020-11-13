@@ -107,7 +107,7 @@ def shut_down_log(pym, rvij, wvij, cvtr):
     rvij.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
-    #os.remove(log_path)
+    os.remove(log_path)
     if track_success:
         messagebox.showinfo("vott tracker", "tracking objects successfully!!")
     else:
@@ -122,7 +122,20 @@ def RVIJ_class_new_and_initial(json_file_path):
     rvij = RVIJ.read_vott_id_json(json_file_path)
     
     # read data
-    rvij.read_from_id_json_data()
+    read_id_ok, state = rvij.read_data_from_id_json_data()
+    if read_id_ok == False: 
+        if state == 'no_id':
+            # there are no added ID on the VoTT
+            pym.PY_LOG(True, 'E', py_name, 'no added ID on the VoTT')
+            messagebox.showinfo("vott tracker", "no added ID on the VoTT, please check it!!!")
+                            
+        elif state == 'same_id': 
+            pym.PY_LOG(True, 'E', py_name, 'gave same ID on the VoTT')                                                                                                
+            messagebox.showinfo("vott tracker", "gave same ID on the VoTT, please check it!!!")
+                            
+        rvij.shut_down_log(' ID __error__\n\n\n\n')
+        sys.exit()   
+
 
     timestamp = rvij.get_timestamp()
 
@@ -259,7 +272,7 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                         pym.PY_LOG(False, 'D', py_name, 'frame_counter: %d start' % frame_counter)
                         now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
                         pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
-                        bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame)
+                        bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
                         print('test1')
                         if track_success == False:
                             break

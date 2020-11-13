@@ -167,7 +167,7 @@ class CV_TRACKER():
         return bbox
 
        
-    def draw_boundbing_box_and_get(self, frame):
+    def draw_boundbing_box_and_get(self, frame, ids):
         ok, bboxes = self.__tracker.update(frame)
         track_success = True
         if ok:
@@ -176,7 +176,9 @@ class CV_TRACKER():
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
                 # below rectangle last parament = return frame picture
                 cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
-            
+                
+                # add ID onto video
+                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 2, self.__bbox_colors[i], 3)
         else:
             track_success = False
             bboxes = [0,0,0,0]
