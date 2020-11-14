@@ -4,8 +4,13 @@ import read_vott_id_json as RVIJ
 import write_vott_id_json as WVIJ
 import cv_tracker as CVTR 
 import log as PYM
-import threading 
+import threading
+from tkinter import *
 from tkinter import messagebox
+
+# for hinding tk window and changing position
+root = Tk() 
+root.geometry(f"10x10+80+50")
 
 ROI_get_bbox = False 
 py_name = 'vott_tracker' 
@@ -111,7 +116,7 @@ def shut_down_log(pym, rvij, wvij, cvtr):
     if track_success:
         messagebox.showinfo("vott tracker", "tracking objects successfully!!")
     else:
-        messagebox.showinfo("vott tracker", "tracking objects failed!!")
+        messagebox.showerror("vott tracker", "tracking objects failed!!")
     sys.exit()
 
 def RVIJ_class_new_and_initial(json_file_path):
@@ -127,11 +132,11 @@ def RVIJ_class_new_and_initial(json_file_path):
         if state == 'no_id':
             # there are no added ID on the VoTT
             pym.PY_LOG(True, 'E', py_name, 'no added ID on the VoTT')
-            messagebox.showinfo("vott tracker", "no added ID on the VoTT, please check it!!!")
+            messagebox.showerror("vott tracker", "no added ID on the VoTT, please check it!!!")
                             
         elif state == 'same_id': 
-            pym.PY_LOG(True, 'E', py_name, 'gave same ID on the VoTT')                                                                                                
-            messagebox.showinfo("vott tracker", "gave same ID on the VoTT, please check it!!!")
+            pym.PY_LOG(True, 'E', py_name, 'gave same ID on the VoTT')                                                                                      
+            messagebox.showerror("vott tracker", "gave same ID on the VoTT, please check it!!!")
                             
         rvij.shut_down_log(' ID __error__\n\n\n\n')
         sys.exit()   
@@ -273,7 +278,6 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                         now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
                         pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
                         bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
-                        print('test1')
                         if track_success == False:
                             break
                         # dealing with data and saving to a new json file
@@ -362,7 +366,8 @@ def read_file_name_path_from_vott_log(target_path):
 
 if __name__ == '__main__':
     # below(True) = exports log.txt
-    pym = PYM.LOG(True)  
+    pym = PYM.LOG(True) 
+
     other_paras = []
     vott_log_ok, video_path, target_path, json_file_path, tracking_time= read_file_name_path_from_vott_log(log_path)
     other_paras.append(tracking_time)
