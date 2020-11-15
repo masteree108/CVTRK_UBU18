@@ -15,7 +15,7 @@ root.geometry(f"10x10+80+50")
 ROI_get_bbox = False 
 py_name = '< vott_tracker >' 
 log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
-data_for_next_json_file = []
+previous_data = []
 track_success = True
 
 class Worker(threading.Thread):
@@ -27,16 +27,14 @@ class Worker(threading.Thread):
         self.rvij = rvij
         self.wvij = wvij
         self.frame_counter = send_data[0]
-        self.now_frame_timestamp_DP = send_data[1]
-        self.bboxes = send_data[2]
-        self.json_file_path = send_data[3]
+        self.bboxes = send_data[1]
+        self.json_file_path = send_data[2]
         self.pym = pym
     def run(self):
         try:
             self.pym.PY_LOG(False, 'D', py_name, "Worker num:%d __run__" % self.num)
             self.lock.acquire()
-            now_format = self.cvtr.get_now_format_value(self.frame_counter)
-            deal_with_name_format_path(self.wvij, self.cvtr, self.now_frame_timestamp_DP, now_format)
+            deal_with_name_format_path(self.wvij, self.cvtr, self.frame_counter)
             deal_with_BX_PT(self.wvij, self.bboxes) 
             self.wvij.create_id_asset_json_file(self.json_file_path)
             self.lock.release()
@@ -55,42 +53,52 @@ def fill_parent_and_tags_to_write_json(rvij, wvij):
     pym.PY_LOG(False, 'D', py_name , 'fill parent data and tags ok')
 
   
-def deal_with_name_format_path(wvij, cvtr, now_frame_timestamp_DP, now_format): 
+def deal_with_name_format_path(wvij, cvtr, frame_counter): 
     
+    now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
+    now_format = cvtr.get_now_format_value(frame_counter)
     pym.PY_LOG(False, 'D', py_name, 'now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
     pym.PY_LOG(False, 'D', py_name, 'now_fromat: %s' % now_format)
 
-    org_asset_name, org_timestamp, org_asset_path = get_data_for_next_json_file()
-    pym.PY_LOG(False, 'D', py_name, 'org_asset_name: %s' % org_asset_name)
-    pym.PY_LOG(False, 'D', py_name, 'org_timestamp: %.5f' % org_timestamp)
-    pym.PY_LOG(False, 'D', py_name, 'org_asset_path: %s' % org_asset_path)
+    prv_asset_name, prv_timestamp, prv_asset_path = get_previous_data_for_next_json_file()
+    pym.PY_LOG(False, 'D', py_name, 'previous_asset_name: %s' % prv_asset_name)
+    pym.PY_LOG(False, 'D', py_name, 'previous_timestamp: %.5f' % prv_timestamp)
+    pym.PY_LOG(False, 'D', py_name, 'previous_asset_path: %s' % prv_asset_path)
     
-    org_timestamp = int(org_timestamp)
-    
-    name_count = org_asset_name.find('=')
-    org_asset_name = org_asset_name[:name_count+1]
-    now_timestamp = now_frame_timestamp_DP
-    now_timestamp = str(org_timestamp +  now_timestamp)
-    now_asset_name = org_asset_name + now_timestamp
+    prv_timestamp_bf_DP = 0
+    if frame_counter == 0:
+        prv_timestamp_bf_DP = int(prv_timestamp) + 1
+    else:
+        prv_timestamp_bf_DP = int(prv_timestamp)
+    pym.PY_LOG(False, 'D', py_name, 'prv_timestamp_bf_DP: %d' % prv_timestamp_bf_DP)
+
+    name_count = prv_asset_name.find('=')
+    prv_asset_name = prv_asset_name[:name_count+1]
+        
+    now_timestamp = prv_timestamp_bf_DP + now_frame_timestamp_DP
+    now_asset_name = prv_asset_name + str(now_timestamp)
     pym.PY_LOG(False, 'D', py_name, 'now_frame_asset_name: %s' % now_asset_name)
-    pym.PY_LOG(False, 'D', py_name, 'now_timestamp: %s' % now_timestamp)
+    pym.PY_LOG(False, 'D', py_name, 'now_timestamp: %.5f' % now_timestamp)
     
-    path_count = org_asset_path.find('=')
-    org_asset_path = org_asset_path[:path_count+1]     
-    now_asset_path = org_asset_path + now_timestamp
+    path_count = prv_asset_path.find('=')
+    prv_asset_path = prv_asset_path[:path_count+1]     
+    now_asset_path = prv_asset_path + str(now_timestamp)
     pym.PY_LOG(False,'D', py_name, 'now_frame_asset_path: %s' % now_asset_path)
 
-    cmp_tp = cvtr.get_every_second_last_frame_timestamp()
-    pym.PY_LOG(False,'D', py_name, 'cmp_tp: %s' % str(cmp_tp))
-    if cmp_tp == now_frame_timestamp_DP:
+    # update previous data 
+    deal_with_data_for_next_json_file(now_asset_name, now_timestamp, now_asset_path)
+
+    #cmp_tp = cvtr.get_every_second_last_frame_timestamp()
+    #pym.PY_LOG(False,'D', py_name, 'cmp_tp: %s' % str(cmp_tp))
+    #if cmp_tp == now_frame_timestamp_DP:
         # if vott video fps = 15, cmp_tp = 0.933333
-        deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path)
+        #deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path)
 
     #this function will be created id via path by md5 method 
     wvij.save_asset_path(now_asset_path)
     wvij.save_asset_format(now_format)
     wvij.save_asset_name(now_asset_name)
-    now_timestamp = float(now_timestamp)
+    #now_timestamp = float(now_timestamp)
     wvij.save_timestamp(now_timestamp)
 
 
@@ -145,7 +153,7 @@ def RVIJ_class_new_and_initial(json_file_path):
 
     timestamp = rvij.get_timestamp()
 
-    update_data_for_next_json_file(rvij.get_asset_name() , \
+    update_previous_data_for_next_json_file(rvij.get_asset_name() , \
                                     rvij.get_timestamp() , \
                                     rvij.get_asset_path())
 
@@ -154,38 +162,38 @@ def RVIJ_class_new_and_initial(json_file_path):
     return rvij, timestamp, bbox
 
 
-def update_data_for_next_json_file(asset_name, timestamp, asset_path):
-    global data_for_next_json_file 
-    data_for_next_json_file = []
-    data_for_next_json_file.append(asset_name)
-    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) asset name: %s' % asset_name)
-    data_for_next_json_file.append(timestamp)
-    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) timestamp: %s' % timestamp)
-    data_for_next_json_file.append(asset_path)
-    pym.PY_LOG(False, 'D', py_name, '(update_data_for_next_json_file) asset_path: %s' % asset_path)
+def update_previous_data_for_next_json_file(asset_name, timestamp, asset_path):
+    global previous_data 
+    previous_data = []
+    previous_data.append(asset_name)
+    pym.PY_LOG(False, 'D', py_name, '(update_previous_data_for_next_json_file) asset name: %s' % asset_name)
+    previous_data.append(timestamp)
+    pym.PY_LOG(False, 'D', py_name, '(update_previous_data_for_next_json_file) timestamp: %s' % timestamp)
+    previous_data.append(asset_path)
+    pym.PY_LOG(False, 'D', py_name, '(update_previous_data_for_next_json_file) asset_path: %s' % asset_path)
 
 
-def deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path):
-    prv_timestamp = int(org_timestamp) + 1
-    pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous timestamp: %s' % str(prv_timestamp))
+def deal_with_data_for_next_json_file(prv_asset_name, prv_timestamp, prv_asset_path):
+    #prv_timestamp = int(org_timestamp+1)
+    pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous timestamp: %.5f' % prv_timestamp)
    
-    index = org_asset_name.find('=')
-    temp = org_asset_name[:index+1]
+    index = prv_asset_name.find('=')
+    temp = prv_asset_name[:index+1]
     prv_asset_name = temp + str(prv_timestamp)
     pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous asset name: %s' % prv_asset_name)
 
-    index = org_asset_path.find('=')
-    temp = org_asset_path[:index+1]
+    index = prv_asset_path.find('=')
+    temp = prv_asset_path[:index+1]
     prv_asset_path = temp + str(prv_timestamp)
     pym.PY_LOG(False, 'D', py_name, '(deal_with_data_for_next_json_file) previous asset path: %s' % prv_asset_path)
 
-    update_data_for_next_json_file(prv_asset_name, prv_timestamp, prv_asset_path)
+    update_previous_data_for_next_json_file(prv_asset_name, prv_timestamp, prv_asset_path)
 
-def get_data_for_next_json_file():
-    global data_for_next_json_file
-    asset_name = data_for_next_json_file[0]
-    timestamp = data_for_next_json_file[1]
-    asset_path = data_for_next_json_file[2]
+def get_previous_data_for_next_json_file():
+    global previous_data
+    asset_name = previous_data[0]
+    timestamp = previous_data[1]
+    asset_path = previous_data[2]
     return asset_name, timestamp, asset_path
 
 def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_video_fps):
@@ -217,12 +225,10 @@ def get_loop_number_and_judge_interval(cvtr, vott_video_fps):
     return source_video_fps, loop_num_interval
 
 
-def deal_with_data_saveto_newJsonFile(frame_counter, now_frame_timestamp_DP, \
-                                        bboxes, json_file_path):                       
+def deal_with_data_saveto_newJsonFile(frame_counter, bboxes, json_file_path):
     # dealing with data and saving to a new json file
     send_data = []
     send_data.append(frame_counter)
-    send_data.append(now_frame_timestamp_DP)
     send_data.append(bboxes)
     send_data.append(json_file_path)
     return send_data
@@ -261,13 +267,13 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
         
         if tt > 0:
             if tt == 1:
-                pym.PY_LOG(False, 'D', py_name, 'first loop over')
+                pym.PY_LOG(False, 'D', py_name, '--------------first loop over-----------------\n')
             frame_counter = -1
 
-        first_loop_counter, loop_num = cvtr.get_loop_counter_and_loop_num(frame_counter)
-        pym.PY_LOG(False, 'D', py_name, 'first_loop_counter: %d' % first_loop_counter)
+        loop_counter_len, loop_num = cvtr.get_loop_counter_and_loop_num(frame_counter)
+        pym.PY_LOG(False, 'D', py_name, 'loop_counter_len: %d' % loop_counter_len)
 
-        for loop_counter in range(first_loop_counter, source_video_fps+1):
+        for loop_counter in range(loop_counter_len, source_video_fps+1):
             try:
                 frame = cvtr.capture_video_frame()
                 if loop_counter >= loop_num and loop_counter <= loop_num + 1:
@@ -276,15 +282,14 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                     loop_num = loop_num + loop_num_interval
                     if frame_counter < vott_video_fps:                 
                         pym.PY_LOG(False, 'D', py_name, 'frame_counter: %d start' % frame_counter)
-                        now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
-                        pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
+                        #now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
+                        #pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
                         bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
                         if track_success == False:
                             break
                         # dealing with data and saving to a new json file
                         send_data = deal_with_data_saveto_newJsonFile(frame_counter, \
-                                                            now_frame_timestamp_DP, \
-                                                            bboxes, json_file_path) 
+                                                            bboxes, json_file_path)
 
                         thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, wvij, send_data, pym))
                         thread_list[thread_counter].start()
@@ -369,7 +374,7 @@ if __name__ == '__main__':
 
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
-    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.2')
+    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.2_unstable')
 
     other_paras = []
     vott_log_ok, video_path, target_path, json_file_path, tracking_time= read_file_name_path_from_vott_log(log_path)
