@@ -30,16 +30,12 @@ class write_vott_id_json():
     __video_size = [3840, 2160]
     __timestamp = 0
         
-    __regions_id = ""
     __tags = []
     __boundingBox = []
     __points = []
 
     def __save_asset_id(self, sid):
         self.__asset_id = sid
-
-    def __save_regions_id(self, rid):
-        self.__regions_id = rid
 
     def __create_asset_id_via_md5(self, path):
         m = hashlib.md5()
@@ -48,10 +44,10 @@ class write_vott_id_json():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'via md5 to create asset_id: %s' % h)
         self.__save_asset_id(h)
 
-    def __create_shorid_for_regions_id(self):
+    def __generate_shorid_for_regions_id(self):
         sid = shortuuid.uuid()
         sid = sid[:9]
-        self.__save_regions_id(sid)
+        return sid
 
 # public
     def __init__(self, target_path):
@@ -69,7 +65,6 @@ class write_vott_id_json():
     
     def create_id_asset_json_file(self, json_file_path):
         try:
-            #self.__create_shorid_for_regions_id()
             new_json_file_path = self.__target_path + self.__asset_id + '-asset.json'
             self.pym.PY_LOG(False, 'D', self.__log_name, 'new json file_path: %s' % new_json_file_path)
             shutil.copyfile(json_file_path, new_json_file_path); 
@@ -87,11 +82,9 @@ class write_vott_id_json():
  
                 data['asset']['timestamp'] = self.__timestamp
 
-                # dealing with part of regions
-                self.__create_shorid_for_regions_id()
-                
                 for i in range(len(self.__boundingBox)):
-                    data['regions'][i]['id'] = self.__regions_id
+                    # dealing with part of regions
+                    data['regions'][i]['id'] = self.__generate_shorid_for_regions_id()
 
                     for j, tag_value in enumerate(self.__tags[i]):
                         data['regions'][i]['tags'][j] = tag_value
