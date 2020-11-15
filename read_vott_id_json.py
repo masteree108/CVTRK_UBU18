@@ -16,6 +16,7 @@ class VIDEO_SIZE(enum.Enum):
 
 class read_vott_id_json():
 # private
+    __log_name = '< read_vott_id_json >'
     __asset_id = ''
     __asset_format = ''
     __asset_name = ''
@@ -32,24 +33,24 @@ class read_vott_id_json():
     __ids = []
 
     def __print_read_parameter_from_json(self, num):
-        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_id: %s' % self.__asset_id)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_format: %s' % self.__asset_format)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_name: %s' % self.__asset_name)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'asset_path: %s' % self.__asset_path)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'video_width: %d' % self.__video_size[VIDEO_SIZE.W.value])
-        self.pym.PY_LOG(False, 'D', self.__class__, 'video_height: %d' % self.__video_size[VIDEO_SIZE.H.value])
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id: %s' % self.__asset_id)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_format: %s' % self.__asset_format)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_name: %s' % self.__asset_name)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_path: %s' % self.__asset_path)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'video_width: %d' % self.__video_size[VIDEO_SIZE.W.value])
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'video_height: %d' % self.__video_size[VIDEO_SIZE.H.value])
 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'parent_id: %s' % self.__parent_id)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'parent_name: %s' % self.__parent_name)
-        self.pym.PY_LOG(False, 'D', self.__class__, 'parent_path: %s' % self.__parent_path)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'parent_id: %s' % self.__parent_id)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'parent_name: %s' % self.__parent_name)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'parent_path: %s' % self.__parent_path)
 
-        self.pym.PY_LOG(False, 'D', self.__class__, 'timestamp: %.5f' % self.__timestamp)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'timestamp: %.5f' % self.__timestamp)
         for i in range(num):
-            self.pym.PY_LOG(False, 'D', self.__class__, 'tags[%d]:' % i + '%s' % self.__tags[i])
-            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box height[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.height.value])
-            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box width[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.width.value])
-            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
-            self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'tags[%d]:' % i + '%s' % self.__tags[i])
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box height[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.height.value])
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box width[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.width.value])
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
 
     def __read_id_from_tags(self):
         state_table = ['ok', 'no_id', 'same_id']
@@ -60,15 +61,15 @@ class read_vott_id_json():
                     break
         # no ID check
         if len(self.__ids) != len(self.__tags):
-            self.pym.PY_LOG(False, 'D', self.__class__, 'There are no ID')
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'There are no ID')
             return False, state_table[1]
              
         # ID duplicate check
         if len(self.__ids) != len(set(self.__ids)):
-            self.pym.PY_LOG(False, 'D', self.__class__, 'duplicated ID')
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'duplicated ID')
             return False, state_table[2]
              
-        self.pym.PY_LOG(False, 'D', self.__class__, 'get ids: %s' % self.__ids)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'get ids: %s' % self.__ids)
         return True, state_table[0]
 
 # public
@@ -78,9 +79,9 @@ class read_vott_id_json():
         self.file_path = ""
         if os.path.exists(file_path):
             self.file_path = file_path
-            self.pym.PY_LOG(False, 'D', self.__class__, '%s existed!' % file_path)
+            self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % file_path)
         else:
-            self.pym.PY_LOG(False, 'E', self.__class__, '%s is not existed!' % file_path)
+            self.pym.PY_LOG(False, 'E', self.__log_name, '%s is not existed!' % file_path)
 
     #del __del__(self):
         #deconstructor 
@@ -89,7 +90,7 @@ class read_vott_id_json():
     def read_data_from_id_json_data(self):
         try:
             with open(self.file_path, 'r') as reader:
-                self.pym.PY_LOG(False, 'D', self.__class__, '%s open ok!' % self.file_path)
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.file_path)
                 jf = json.loads(reader.read())
 
                 self.__asset_id = jf['asset']['id']
@@ -117,14 +118,14 @@ class read_vott_id_json():
                     self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["left"])
                     self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["top"])
 
-                self.pym.PY_LOG(False, 'D', self.__class__, '%s read ok!' % self.file_path)
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s read ok!' % self.file_path)
                 reader.close()
 
                 self.__print_read_parameter_from_json(self.__object_num)
 
                 return self.__read_id_from_tags()
         except:
-            self.pym.PY_LOG(False, 'E', self.__class__, '%s has wrong format!' % self.file_path)
+            self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.file_path)
             sys.exit()
 
     def get_asset_id(self):
@@ -169,7 +170,7 @@ class read_vott_id_json():
         return bbox
 
     def shut_down_log(self, msg):
-        self.pym.PY_LOG(True, 'D', self.__class__, msg)
+        self.pym.PY_LOG(True, 'D', self.__log_name, msg)
 
     
     def get_object_number(self):

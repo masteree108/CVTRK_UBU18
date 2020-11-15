@@ -18,7 +18,7 @@ class POINT_ITEM(enum.Enum):
 
 class write_vott_id_json():
 # private
-    
+    __log_name = "< write_vott_id_json >"    
     __asset_id = ""
     __asset_format = ""
     __asset_path = ""
@@ -45,7 +45,7 @@ class write_vott_id_json():
         m = hashlib.md5()
         m.update(path.encode("utf-8"))
         h = m.hexdigest()
-        self.pym.PY_LOG(False, 'D', self.__class__, 'via md5 to create asset_id: %s' % h)
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'via md5 to create asset_id: %s' % h)
         self.__save_asset_id(h)
 
     def __create_shorid_for_regions_id(self):
@@ -60,9 +60,9 @@ class write_vott_id_json():
         self.target_path = ""
         if os.path.exists(target_path):
             self.__target_path = target_path
-            self.pym.PY_LOG(False, 'D', self.__class__, 'traget_path: %s is existed' % target_path)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'traget_path: %s is existed' % target_path)
         else:
-            self.pym.PY_LOG(False, 'E', self.__class__, 'traget_path: %s is not existed!!' % target_path)
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'traget_path: %s is not existed!!' % target_path)
     
     #del __del__(self):
         #deconstructor  
@@ -71,7 +71,7 @@ class write_vott_id_json():
         try:
             #self.__create_shorid_for_regions_id()
             new_json_file_path = self.__target_path + self.__asset_id + '-asset.json'
-            self.pym.PY_LOG(False, 'D', self.__class__, 'new json file_path: %s' % new_json_file_path)
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'new json file_path: %s' % new_json_file_path)
             shutil.copyfile(json_file_path, new_json_file_path); 
             # open and modify content 
             with open( new_json_file_path, 'r+') as f:
@@ -120,7 +120,7 @@ class write_vott_id_json():
                 json.dump(data, f, indent = 4)
                 f.close()
         except:
-            self.pym.PY_LOG(False, 'E', self.__class__, 'write VoTT id json file failed!!')
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'write VoTT id json file failed!!')
 
 
     def save_asset_format(self, sformat):
@@ -174,7 +174,7 @@ class write_vott_id_json():
         self.__points[index][POINT_ITEM.y2.value] = PT[POINT_ITEM.y2.value]  #y2
 
     def shut_down_log(self, msg):
-         self.pym.PY_LOG(True, 'D', self.__class__, msg)
+         self.pym.PY_LOG(True, 'D', self.__log_name, msg)
 
 
 

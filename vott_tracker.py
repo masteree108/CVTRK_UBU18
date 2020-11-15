@@ -13,7 +13,7 @@ root = Tk()
 root.geometry(f"10x10+80+50")
 
 ROI_get_bbox = False 
-py_name = 'vott_tracker' 
+py_name = '< vott_tracker >' 
 log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
 data_for_next_json_file = []
 track_success = True
@@ -366,8 +366,10 @@ def read_file_name_path_from_vott_log(target_path):
 
 
 if __name__ == '__main__':
+
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
+    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.2')
 
     other_paras = []
     vott_log_ok, video_path, target_path, json_file_path, tracking_time= read_file_name_path_from_vott_log(log_path)
