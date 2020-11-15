@@ -90,6 +90,7 @@ def deal_with_name_format_path(wvij, cvtr, now_frame_timestamp_DP, now_format):
     wvij.save_asset_path(now_asset_path)
     wvij.save_asset_format(now_format)
     wvij.save_asset_name(now_asset_name)
+    now_timestamp = float(now_timestamp)
     wvij.save_timestamp(now_timestamp)
 
 

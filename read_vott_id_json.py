@@ -51,12 +51,6 @@ class read_vott_id_json():
             self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
             self.pym.PY_LOG(False, 'D', self.__class__, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
 
-
-    def __check_timestamp_format(self):
-        # sometimes timestamp value will appears Double colon("") in the json file,
-        # like "100", so we must change it to float  otherwise will cause this process terminate
-        self.__timestamp = float(self.__timestamp)
-
     def __read_id_from_tags(self):
         state_table = ['ok', 'no_id', 'same_id']
         for i, tags in enumerate(self.__tags):
@@ -126,7 +120,6 @@ class read_vott_id_json():
                 self.pym.PY_LOG(False, 'D', self.__class__, '%s read ok!' % self.file_path)
                 reader.close()
 
-                self.__check_timestamp_format()
                 self.__print_read_parameter_from_json(self.__object_num)
 
                 return self.__read_id_from_tags()
