@@ -14,7 +14,7 @@ root.geometry(f"10x10+80+50")
 
 ROI_get_bbox = False 
 py_name = '< vott_tracker >' 
-log_path = '../../Drone_Project/Drone_Target/for_python_path.log'
+log_path = '../../../Drone_Target/for_python_path.log'
 previous_data = []
 track_success = True
 
@@ -359,10 +359,10 @@ def read_file_name_path_from_vott_log(target_path):
     target_path = video_path.replace("Drone_Source", "Drone_Target")
     l1 = target_path.find("Drone_Target")
     l2 = l1 + len("Drone_Target/")
-    temp_path = target_path[l2:]
+    temp_path = target_path[l2:-4]
     l3 = temp_path.find('/')
-    last_dir_path = temp_path[:l3] 
-    target_path = target_path[:l2] + last_dir_path + '/'
+    last_dir_path = temp_path[:0] 
+    target_path = target_path[:l2] + temp_path + '/'
     pym.PY_LOG(False, 'D', py_name, 'target_path: %s' % target_path)
     json_file_path = target_path + file_name
     pym.PY_LOG(False, 'D', py_name, 'json_file_path: %s' % json_file_path)
