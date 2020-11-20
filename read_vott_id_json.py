@@ -31,6 +31,7 @@ class read_vott_id_json():
     __boundingBox = []
     __object_num = 0
     __ids = []
+    __file_path = ''
 
     def __print_read_parameter_from_json(self, num):
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id: %s' % self.__asset_id)
@@ -61,12 +62,12 @@ class read_vott_id_json():
                     break
         # no ID check
         if len(self.__ids) != len(self.__tags):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'There are no ID')
+            self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no ID')
             return False, state_table[1]
              
         # ID duplicate check
         if len(self.__ids) != len(set(self.__ids)):
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'duplicated ID')
+            self.pym.PY_LOG(True, 'E', self.__log_name, 'duplicated ID')
             return False, state_table[2]
              
         self.pym.PY_LOG(False, 'D', self.__log_name, 'get ids: %s' % self.__ids)
@@ -76,21 +77,24 @@ class read_vott_id_json():
     def __init__(self, file_path):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)
-        self.file_path = ""
-        if os.path.exists(file_path):
-            self.file_path = file_path
-            self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % file_path)
-        else:
-            self.pym.PY_LOG(False, 'E', self.__log_name, '%s is not existed!' % file_path)
-
+        self.__file_path = file_path
+        
     #del __del__(self):
         #deconstructor 
+
+    def check_file_exist(self):
+        if os.path.exists(self.__file_path):
+            self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % self.__file_path)
+            return True
+        else:
+            self.pym.PY_LOG(True, 'E', self.__log_name, '%s is not existed!' % self.__file_path)
+            return False
 
 
     def read_data_from_id_json_data(self):
         try:
-            with open(self.file_path, 'r') as reader:
-                self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.file_path)
+            with open(self.__file_path, 'r') as reader:
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s open ok!' % self.__file_path)
                 jf = json.loads(reader.read())
 
                 self.__asset_id = jf['asset']['id']
@@ -118,14 +122,14 @@ class read_vott_id_json():
                     self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["left"])
                     self.__boundingBox[i].append(jf['regions'][i]['boundingBox']["top"])
 
-                self.pym.PY_LOG(False, 'D', self.__log_name, '%s read ok!' % self.file_path)
+                self.pym.PY_LOG(False, 'D', self.__log_name, '%s read ok!' % self.__file_path)
                 reader.close()
 
                 self.__print_read_parameter_from_json(self.__object_num)
 
                 return self.__read_id_from_tags()
         except:
-            self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.file_path)
+            self.pym.PY_LOG(False, 'E', self.__log_name, '%s has wrong format!' % self.__file_path)
             sys.exit()
 
     def get_asset_id(self):

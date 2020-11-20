@@ -2,21 +2,12 @@ import os
 import sys
 import read_vott_id_json as RVIJ
 import write_vott_id_json as WVIJ
-import cv_tracker as CVTR 
+import cv_tracker as CVTR
+import read_project_vott as RPV 
 import log as PYM
+from vott_tracker_func import*
 import threading
-from tkinter import *
-from tkinter import messagebox
 
-# for hinding tk window and changing position
-root = Tk() 
-root.geometry(f"10x10+80+50")
-
-ROI_get_bbox = False 
-py_name = '< vott_tracker >' 
-log_path = '../../../Drone_Target/for_python_path.log'
-previous_data = []
-track_success = True
 
 class Worker(threading.Thread):
     def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
@@ -88,17 +79,10 @@ def deal_with_name_format_path(wvij, cvtr, frame_counter):
     # update previous data 
     deal_with_data_for_next_json_file(now_asset_name, now_timestamp, now_asset_path)
 
-    #cmp_tp = cvtr.get_every_second_last_frame_timestamp()
-    #pym.PY_LOG(False,'D', py_name, 'cmp_tp: %s' % str(cmp_tp))
-    #if cmp_tp == now_frame_timestamp_DP:
-        # if vott video fps = 15, cmp_tp = 0.933333
-        #deal_with_data_for_next_json_file(org_asset_name, org_timestamp, org_asset_path)
-
     #this function will be created id via path by md5 method 
     wvij.save_asset_path(now_asset_path)
     wvij.save_asset_format(now_format)
     wvij.save_asset_name(now_asset_name)
-    #now_timestamp = float(now_timestamp)
     wvij.save_timestamp(now_timestamp)
 
 
@@ -115,18 +99,18 @@ def deal_with_BX_PT(wvij, bboxes):
         wvij.save_boundingBox(BX, i)
         wvij.save_points(PT, i)
 
-def shut_down_log(pym, rvij, wvij, cvtr):
-    global track_success
-    pym.PY_LOG(True, 'D', py_name, '__done___')
-    rvij.shut_down_log('__done__')
-    wvij.shut_down_log('__done__')
-    cvtr.shut_down_log('__done__\n\n\n\n')
-    os.remove(log_path)
-    if track_success:
-        messagebox.showinfo("vott tracker", "tracking objects successfully!!")
+
+def PRV_class_new_and_initial(project_vott_file_path):
+    # default fps
+    # this class only to get fps that user setted ont the vott
+    # so if read fps finished,we can shut down save msg to log.txt in this class
+    fps = 15 
+    prv = RPV.read_project_vott(project_vott_file_path)
+    if prv.check_file_exist() == False:
+        shutdown_log_and_show_error_msg("class read_project_vott failed!!", False)
     else:
-        messagebox.showerror("vott tracker", "tracking objects failed!!")
-    sys.exit()
+        fps = prv.read_fps()
+    return fps
 
 def RVIJ_class_new_and_initial(json_file_path):
     # get video's time that VoTT user to label track object 
@@ -134,32 +118,31 @@ def RVIJ_class_new_and_initial(json_file_path):
 
     # class rvij that is about reading data from json file
     rvij = RVIJ.read_vott_id_json(json_file_path)
-    
-    # read data
-    read_id_ok, state = rvij.read_data_from_id_json_data()
-    if read_id_ok == False: 
-        if state == 'no_id':
-            # there are no added ID on the VoTT
-            pym.PY_LOG(True, 'E', py_name, 'no added ID on the VoTT')
-            messagebox.showerror("vott tracker", "no added ID on the VoTT, please check it!!!")
+  
+    # check file exist?
+    if rvij.check_file_exist() == False:
+        shutdown_log_and_show_error_msg("class read_vott_id_json failed!!", True)
+    else:
+        # read data
+        read_id_ok, state = rvij.read_data_from_id_json_data()
+        if read_id_ok == False: 
+            if state == 'no_id':
+                # there are no added ID on the VoTT
+                shutdown_log_and_show_error_msg("no added ID on the VoTT!!", True)
                             
-        elif state == 'same_id': 
-            pym.PY_LOG(True, 'E', py_name, 'gave same ID on the VoTT')                                                                                      
-            messagebox.showerror("vott tracker", "gave same ID on the VoTT, please check it!!!")
+            elif state == 'same_id': 
+                shutdown_log_and_show_error_msg("gave same ID on the VoTT!!", True)
                             
-        rvij.shut_down_log(' ID __error__\n\n\n\n')
-        sys.exit()   
+        else:
+            timestamp = rvij.get_timestamp()
 
+            update_previous_data_for_next_json_file(rvij.get_asset_name() , \
+                                            rvij.get_timestamp() , \
+                                            rvij.get_asset_path())
 
-    timestamp = rvij.get_timestamp()
-
-    update_previous_data_for_next_json_file(rvij.get_asset_name() , \
-                                    rvij.get_timestamp() , \
-                                    rvij.get_asset_path())
-
-    # get bounding box position
-    bbox = rvij.get_boundingBox()
-    return rvij, timestamp, bbox
+            # get bounding box position
+            bbox = rvij.get_boundingBox()
+            return rvij, timestamp, bbox
 
 
 def update_previous_data_for_next_json_file(asset_name, timestamp, asset_path):
@@ -213,8 +196,10 @@ def WVIJ_class_new_and_initial(target_path):
     # class wvij that is about writing data to json file  
     
     wvij = WVIJ.write_vott_id_json(target_path)
-
-    return wvij
+    if wvij.check_file_exist() == False:
+        shutdown_log_and_show_error_msg("class write_vott_id_json failed!!", True)
+    else:
+        return wvij
 
 def get_loop_number_and_judge_interval(cvtr, vott_video_fps):
     source_video_fps = cvtr.get_source_video_fps()
@@ -232,10 +217,26 @@ def deal_with_data_saveto_newJsonFile(frame_counter, bboxes, json_file_path):
     send_data.append(bboxes)
     send_data.append(json_file_path)
     return send_data
+
+def shutdown_log_and_show_error_msg(msg, remove_switch):
+    paras = []
+    paras.append(msg)
+    paras.append(pym)
+    paras.append(remove_switch)
+    paras.append(vott_source_info_path)
+    paras.append(vott_target_path)
+    do_shutdown_log_and_show_error_msg(paras)
  
-def main(target_path, json_file_path, video_path, algorithm, other_paras):
-    global track_success 
-    vott_video_fps = 15
+def main(target_path, project_vott_file_path,  json_file_path, video_path, algorithm, main_paras):
+    global track_success
+    paras = []
+    paras.append(vott_source_info_path)
+    paras.append(vott_target_path)
+    paras.append(track_success)
+
+    tracking_time = main_paras[0]
+    #initial class RPV(read fps that user setted on the VoTT project)
+    vott_video_fps = PRV_class_new_and_initial(project_vott_file_path)
 
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
@@ -260,6 +261,7 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
     # for saving data to json file
     json_file_lock = threading.Lock()  
 
+
     for tt in range(tracking_time):
         # for saving data to json file
         thread_counter = 0
@@ -282,8 +284,6 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                     loop_num = loop_num + loop_num_interval
                     if frame_counter < vott_video_fps:                 
                         pym.PY_LOG(False, 'D', py_name, 'frame_counter: %d start' % frame_counter)
-                        #now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
-                        #pym.PY_LOG(False, 'D', py_name, '(main) now_frame_timestamp_DP: %.6f' % now_frame_timestamp_DP)
                         bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
                         if track_success == False:
                             break
@@ -301,7 +301,8 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
                 cvtr.destroy_debug_window()
                 for i in range(thread_counter):
                     thread_list[i].join()
-                shut_down_log(pym, rvij, wvij, cvtr)
+                
+                shut_down_log_with_all(pym, rvij, wvij, cvtr, paras)
                 break
 
         for i in range(thread_counter):
@@ -310,83 +311,51 @@ def main(target_path, json_file_path, video_path, algorithm, other_paras):
         
         if track_success == False:
             break
-    shut_down_log(pym, rvij, wvij, cvtr)
 
-def read_file_name_path_from_vott_log(target_path):
-    # file ex:
-    # file:/home/ivan/HD1/hd/VoTT/Drone_Project/Drone_Source/001/Drone_001.mp4#t=305.533333,76a8e999e2d9232d8e26253551acb4b3-asset.json,time
-
-    if os.path.exists(target_path):
-        pym.PY_LOG(False, 'D', py_name, 'target_path: %s existed!' % target_path)                                                                         
-    else:
-        pym.PY_LOG(False, 'E', py_name, 'target_path: %s is not existed!' % target_path)
-        sys.exit()
-        return False, "","","",""
-
-    f = open(target_path, "r") 
-    # remove file:
-    path = f.read()
-    path = path[5:]
-    vc = 0
-    
-    # get source video path
-    vc = path.find('#')
-    video_path = path[:vc]
-    pym.PY_LOG(False, 'D', py_name, 'video_path: %s' % video_path)
-
-    # get json file(this file will be created when user used vott to label object)
-    vc = path.find(',')
-    file_name = path[vc+1:]
-    pym.PY_LOG(False, 'D', py_name, 'file_name with time: %s' % file_name)
-
-    # get tracking_time
-    tracking_time = 1
-    vc_tt = file_name.find(',')
-    temp = file_name[vc_tt+1:]
-    vc_tt = temp.find(',')
-    tracking_time = int(temp[vc_tt+1:])
-    pym.PY_LOG(False, 'D', py_name, 'tracking_time: %d' % tracking_time)
-     
-
-    vc = file_name.find(',')
-    file_name = file_name[:vc]
-    pym.PY_LOG(False, 'D', py_name, 'file_name without time: %s' % file_name)
-    
-    # replace Dorne_Source to Drone_Target because from video path,
-    # because we need to get the json file at Drone_Target/target_name folder
-    # please note if users target_name(ex:001) folder is not equal to source_name(ex:001) 
-    # below target_path will be wrong!!!
-    target_path = video_path.replace("Drone_Source", "Drone_Target")
-    l1 = target_path.find("Drone_Target")
-    l2 = l1 + len("Drone_Target/")
-    temp_path = target_path[l2:-4]
-    l3 = temp_path.find('/')
-    last_dir_path = temp_path[:0] 
-    target_path = target_path[:l2] + temp_path + '/'
-    pym.PY_LOG(False, 'D', py_name, 'target_path: %s' % target_path)
-    json_file_path = target_path + file_name
-    pym.PY_LOG(False, 'D', py_name, 'json_file_path: %s' % json_file_path)
-    return True, video_path, target_path, json_file_path, tracking_time
-
+    shut_down_log_with_all(pym, rvij, wvij, cvtr, paras)
 
 
 if __name__ == '__main__':
+    # ===========  Global variables set area start ==============
+    ROI_get_bbox = False 
+    py_name = '< vott_tracker >' 
+    vott_source_info_path = ''
+    #ex: vott_source_info_path = '../../../Drone_Target/vott_source_info.tmp'
+    vott_target_path = ''
+    #ex vott_target_path = '../../../Drone_Target/vott_target_path.json'
 
+    previous_data = []
+    track_success = True
+
+    paras = []
+    main_paras = []
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
+    # ===========  Global variables set area over==============
+
     pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.2_unstable')
 
-    other_paras = []
-    vott_log_ok, video_path, target_path, json_file_path, tracking_time= read_file_name_path_from_vott_log(log_path)
-    other_paras.append(tracking_time)
-    #if len(sys.argv[1]) > 1:
-        #file_path = file_path + sys.argv[1]
-        #print("file_path: %s" % file_path)
-    #if len(sys.argv[2]) > 1:
-        #algorithm = sys.argv[2]
-        #print(algorithm)
+    # reading parameter from user pressing vott "auto track" button
+    get_para_ok = True
+    try:
+        if len(sys.argv[1]) > 1:
+            vott_source_info_path = sys.argv[1]
+        if len(sys.argv[2]) > 1:
+            vott_target_path = sys.argv[2]
+        pym.PY_LOG(False, 'D', py_name, 'get vott_source_info_path: %s from vott created' % vott_source_info_path)
+        pym.PY_LOG(False, 'D', py_name, 'vott_target_path: %s from vott created' % vott_target_path)
+    except:
+        get_para_ok = False
+        shutdown_log_and_show_error_msg("read parameter from vott failed!!", False)
 
-    arrived_next_frame = False 
-    algorithm = 'CSRT'
-    if vott_log_ok:
-        main(target_path, json_file_path, video_path, algorithm, other_paras)
+    if get_para_ok:
+        read_vott_source_info_ok, video_path, json_file_name, tracking_time = read_vott_source_info(vott_source_info_path, pym)
+        if read_vott_source_info_ok:
+            read_vott_target_path_ok, target_path, project_vott_file_path, json_file_path = read_vott_target_path(vott_target_path, json_file_name, pym)
+
+        if read_vott_source_info_ok and read_vott_target_path_ok:
+            algorithm = 'CSRT'
+            main_paras.append(tracking_time)
+            main(target_path, project_vott_file_path, json_file_path, video_path, algorithm, main_paras)
+        else:
+            shutdown_log_and_show_error_msg("read vott_source_info or read_vott_target_failed!!", False)

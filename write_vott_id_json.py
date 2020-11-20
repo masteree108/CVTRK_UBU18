@@ -33,6 +33,7 @@ class write_vott_id_json():
     __tags = []
     __boundingBox = []
     __points = []
+    __target_path = ""
 
     def __save_asset_id(self, sid):
         self.__asset_id = sid
@@ -53,16 +54,19 @@ class write_vott_id_json():
     def __init__(self, target_path):
         # below(True) = exports log.txt
         self.pym = PYM.LOG(True)
-        self.target_path = ""
-        if os.path.exists(target_path):
-            self.__target_path = target_path
-            self.pym.PY_LOG(False, 'D', self.__log_name, 'traget_path: %s is existed' % target_path)
-        else:
-            self.pym.PY_LOG(False, 'E', self.__log_name, 'traget_path: %s is not existed!!' % target_path)
-    
+        self.__target_path = target_path
+            
     #del __del__(self):
         #deconstructor  
-    
+
+    def check_file_exist(self):
+        if os.path.exists(self.__target_path):
+            self.pym.PY_LOG(False, 'D', self.__log_name, 'traget_path: %s is existed' % self.__target_path)
+            return True
+        else:
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'traget_path: %s is not existed!!' % self.__target_path)
+            return False
+
     def create_id_asset_json_file(self, json_file_path):
         try:
             new_json_file_path = self.__target_path + self.__asset_id + '-asset.json'
