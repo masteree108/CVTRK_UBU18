@@ -45,10 +45,13 @@ def read_vott_source_info(file_path, pym):
     tracking_time = 1         
     vc_tt = file_name.find(',')                                                                                                                                        
     temp = file_name[vc_tt+1:]
-    vc_tt = temp.find(',')    
-    tracking_time = int(temp[vc_tt+1:])
-    pym.PY_LOG(False, 'D', py_name, 'tracking_time: %d' % tracking_time)
-                              
+    vc_tt = temp.find(',')   
+    try:
+        tracking_time = int(temp[vc_tt+1:])
+        pym.PY_LOG(False, 'D', py_name, 'tracking_time: %d' % tracking_time)
+    except:
+        pym.PY_LOG(False, 'D', py_name, 'use default tracking_time 1')
+        tracking_time = 1
                               
     vc = file_name.find(',')  
     json_file_name = file_name[:vc]
@@ -113,7 +116,7 @@ def do_shutdown_log_and_show_error_msg(paras):
     '''
     msg = paras[0]
     pym = paras[1]
-    pym.PY_LOG(True, 'E', py_name, '__error__' + msg + "\n\n\n\n")
+    pym.PY_LOG(True, 'E', py_name, '__process_terminate__' + msg + "\n\n\n\n")
     show_error_msg_on_toast("vott_tracker",msg + "\n" + "the details please refer log.txt(VoTT_NTUT/your OS/log/log.txt)!!")
 
     # if remove_switch = false that is for analyzing those data while error happened
@@ -125,20 +128,53 @@ def do_shutdown_log_and_show_error_msg(paras):
         remove_file(vott_target_path)
     sys.exit()
 
-def shut_down_log_with_all(pym, rvij, wvij, cvtr, paras):
+def do_shutdown_log_and_show_error_msg_with_rvij_cvtr(rvij, cvtr, paras):
     '''
     paras:
-        index 0: vott_source_info
-        index 1: vott_project_path
-        index 2: track_success
+        index 0: msg
+        index 1: pym
+        index 2: remove below tmp file switch
+        index 3: vott_source_info
+        index 4: vott_project_path
     '''
 
-    vott_source_info = paras[0]
-    vott_target_path = paras[1]
-    track_success = paras[2]
+    msg = paras[0]
+    pym = paras[1]
+    remove_switch = paras[2]
+    vott_source_info = paras[3]
+    vott_target_path = paras[4]
 
 
-    pym.PY_LOG(True, 'D', py_name, '__done___')
+    pym.PY_LOG(True, 'D', py_name, '__process_terminate__')
+    rvij.shut_down_log('__process_terminate___')
+    cvtr.shut_down_log(msg + '\n\n\n\n')
+    
+    # if remove_switch = false that is for analyzing those data while error happened
+    if remove_switch:
+        vott_source_info = paras[3]
+        vott_target_path = paras[4]
+        remove_file(vott_source_info)
+        remove_file(vott_target_path)
+    sys.exit()
+
+
+
+def do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras):
+    '''
+    paras:
+        index 0: msg
+        index 1: track_success
+        index 2: vott_source_info
+        index 3: vott_project_path
+    '''
+
+    msg = paras[0]
+    track_success = paras[1]
+    vott_source_info = paras[2]
+    vott_target_path = paras[3]
+
+
+    pym.PY_LOG(True, 'D', py_name, msg)
     rvij.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')

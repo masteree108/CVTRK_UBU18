@@ -179,7 +179,7 @@ def get_previous_data_for_next_json_file():
     asset_path = previous_data[2]
     return asset_name, timestamp, asset_path
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_video_fps):
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -188,7 +188,20 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_vi
     # pos2: save viedo with bbox     
     # ROI_get_bbox just a tester to test tracking function
     image_debug = [1, 0, 0]
-    cvtr = CVTR.CV_TRACKER(algorithm, video_path, timestamp, bboxes, image_debug, vott_video_fps)
+    
+    # 1. initial
+    cvtr = CVTR.CV_TRACKER(video_path)
+    
+    # 2. opencv setting
+    if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug) == False:
+        msg = "opencv setting failed"
+        shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, True)
+     
+    # 3. check fps from project.vott
+    if cvtr.check_support_fps(vott_video_fps) == False:
+        msg = "this FrameExtractionRate: %d that user setted on the Vott is not support!!" % vott_video_fps
+        shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, True)
+
     return cvtr
 
 
@@ -226,13 +239,28 @@ def shutdown_log_and_show_error_msg(msg, remove_switch):
     paras.append(vott_source_info_path)
     paras.append(vott_target_path)
     do_shutdown_log_and_show_error_msg(paras)
- 
-def main(target_path, project_vott_file_path,  json_file_path, video_path, algorithm, main_paras):
-    global track_success
+
+def shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, remove_switch):
     paras = []
+    paras.append(msg)
+    paras.append(pym)
+    paras.append(remove_switch)
     paras.append(vott_source_info_path)
     paras.append(vott_target_path)
+    cvtr.destroy_debug_window()
+    do_shutdown_log_and_show_error_msg_with_rvij_cvtr(rvij, cvtr, paras)
+
+def shutdown_log_with_all(msg, pym, rvij, wvij, cvtr):
+    paras = []
+    global track_success
+    paras.append(msg)
     paras.append(track_success)
+    paras.append(vott_source_info_path)
+    paras.append(vott_target_path)
+    do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras)
+
+def main(target_path, project_vott_file_path,  json_file_path, video_path, algorithm, main_paras):
+    global track_success
 
     tracking_time = main_paras[0]
     #initial class RPV(read fps that user setted on the VoTT project)
@@ -242,8 +270,8 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
 
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, vott_video_fps)
-    
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps)
+        
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
 
@@ -252,7 +280,6 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
 
     # reading and setting
     frame_counter = cvtr.get_label_frame_number(rvij.get_asset_format())
-
     pym.PY_LOG(False, 'D', py_name, 'user to label frame number: %d' % frame_counter)
   
     # get soure_video_fps and loop_num_interval 
@@ -302,7 +329,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                 for i in range(thread_counter):
                     thread_list[i].join()
                 
-                shut_down_log_with_all(pym, rvij, wvij, cvtr, paras)
+                shutdown_log_with_all("process terminate",pym, rvij, wvij, cvtr)
                 break
 
         for i in range(thread_counter):
@@ -312,7 +339,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
         if track_success == False:
             break
 
-    shut_down_log_with_all(pym, rvij, wvij, cvtr, paras)
+    shutdown_log_with_all("__done__", pym, rvij, wvij, cvtr)
 
 
 if __name__ == '__main__':
