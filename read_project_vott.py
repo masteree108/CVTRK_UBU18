@@ -6,7 +6,7 @@ import log as PYM
 class read_project_vott():
 # private
     __file_path = ''
-    __log_name = '< Read_Project_VoTT >'
+    __log_name = '< class Read_Project_VoTT >'
 
 # public
     def __init__(self, file_path):

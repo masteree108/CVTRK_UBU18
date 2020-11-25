@@ -16,7 +16,7 @@ class VIDEO_SIZE(enum.Enum):
 
 class read_vott_id_json():
 # private
-    __log_name = '< read_vott_id_json >'
+    __log_name = '< class read_vott_id_json>'
     __asset_id = ''
     __asset_format = ''
     __asset_name = ''

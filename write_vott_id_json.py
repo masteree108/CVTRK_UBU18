@@ -18,7 +18,7 @@ class POINT_ITEM(enum.Enum):
 
 class write_vott_id_json():
 # private
-    __log_name = "< write_vott_id_json >"    
+    __log_name = "< class write_vott_id_json >"    
     __asset_id = ""
     __asset_format = ""
     __asset_path = ""
