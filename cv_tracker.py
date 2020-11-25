@@ -3,7 +3,7 @@ import sys
 import enum
 from random import randint
 import log as PYM
-
+from _pydecimal import Decimal, Context, ROUND_HALF_UP
 
 class IMAGE_DEBUG(enum.Enum):
     # SW_VWB: show video with bbox 
@@ -29,18 +29,47 @@ class CV_TRACKER():
     __frame_timestamp_DP_5fps = [0, 0.2, 0.4, 0.6, 0.8]
     __format_5fps = ['mp4', '2', '4', '6', '8']
 
+    '''
+        pick up frame description:
+        if source_video_fps = 29,
+        (1) setted project frame rate = 15, only pick 15 frames from 30 frames(1sec)
+            pick_up_frame_interval = round(29/15) = 2
+            loop_counter(start number is 0)
+            pick up frame:  | judgemanet:   
+            1               | == 2-1 (pick_up_interval -1)
+            3               | == 4-1 
+            5               | == 6-1
+            7               | == 8-1
+            9               | == 10-1
+            11              | == 12-1
+            13              | == 14-1
+            15              | == 16-1
+            17              | == 18-1
+            19              | == 20-1
+            21              | == 22-1
+            23              | == 24-1
+            25              | == 26-1
+            27              | == 28-1
+            29              | == 30-1
+
+    (2) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
+            pick_up_frame_interval = round(29/5) = 6
+            loop_counter(start number is 0)
+            pick up frame:  | judgemanet:   
+            5               | == 6-1 (pick_up_interval -1)
+            11              | == 12-1 
+            17              | == 18-1
+            23              | == 24-1
+            29              | == 30-1
+    '''
+
+
     __video_path = ''
     __video_cap = 0
     __tracker = 0
     __image_debug = [0,0,0]
     __bbox_colors = []
     __vott_video_fps = 0
-
-    __fps_15_loop_counter = [ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]
-    __fps_15_loop_num = [ 1.93, 3.87, 5.80, 7.73, 9.67, 11.60, 13.53, 17.40, 19.33, 21.27, 23.20, 25.13, 27.07, 29, 30.93]
-    
-    __fps_5_loop_counter = [ 2, 4, 6, 8, 10]
-    __fps_5_loop_num = [5, 11, 17, 23, 29]
 
     def __get_algorithm_tracker(self, algorithm):
         
@@ -68,7 +97,7 @@ class CV_TRACKER():
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
             if format_value == format_fps[count]:
-                return count
+                return count + 1
     
     def __show_video_with_bounding_box(self, window_name ,frame, wk_value):
         cv2.imshow(window_name, frame)
@@ -162,16 +191,12 @@ class CV_TRACKER():
     
     def get_now_format_value(self, frame_count):
         # check which frame that user use VoTT tool to label
-        fps = self.__vott_video_fps 
+        fps = self.__vott_video_fps
+        fc = frame_count -1
         if fps == 15:
-            return self.__format_15fps[frame_count]
-        # for adding new fps format use, please write it here
-        #elif fps == 30:
-            #return self.__format_30fps[frame_count]
-        else:
-            self.pym.PY_LOG(False, 'W', self.__class__, 'This version only provides 15fps format check,\
-            so use 15fps check to get format value')
-            return self.__format_15fps[frame_count]
+            return self.__format_15fps[fc]
+        elif fps == 5:
+            return self.__format_5fps[fc]
    
     def use_ROI_select(self, ROI_window_name, frame):
         cv2.namedWindow(ROI_window_name, cv2.WINDOW_NORMAL)                                                   
@@ -231,29 +256,15 @@ class CV_TRACKER():
         self.pym.PY_LOG(False, 'D', self.__class__, '===== source video format over =====')
     
     def get_now_frame_timestamp_DP(self, frame_count):
+        fc = frame_count -1
         fps = self.__vott_video_fps
         if fps == 15:
-            return self.__frame_timestamp_DP_15fps[frame_count]
+            return self.__frame_timestamp_DP_15fps[fc]
         elif fps == 5: 
-            return self.__frame_timestamp_DP_5fps[frame_count]
-            
-    def get_frame_interval_for_timer_count(self):
-        frame_interval = 0.1
-        fps = self.__vott_video_fps
-        if fps == 15:
-            # 1 sec(15 frames) interval = 1/15 = 0.066667
-            frame_interval = 0.066667
-            self.pym.PY_LOG(False, 'D', self.__class__, 'frame_interval: %.6f' % frame_interval)
-        elif fps == 5:
-            # 1 sec(5 frames) interval = 1/5 = 0.2
-            frame_interval = 0.2
-            self.pym.PY_LOG(False, 'D', self.__class__, 'frame_interval: %.6f' % frame_interval)
-
-        return float(frame_interval)
+            return self.__frame_timestamp_DP_5fps[fc]
     
     def shut_down_log(self, msg):
         self.pym.PY_LOG(True, 'D', self.__class__, msg)
-
 
     def set_video_strat_frame(self, time):
         self.__video_cap.set(cv2.CAP_PROP_POS_MSEC, time*1000)                              
@@ -271,15 +282,15 @@ class CV_TRACKER():
         elif fps == 5:
             return self.__frame_timestamp_DP_5fps[fps - 1]   
 
-    def get_loop_counter_and_loop_num(self, frame_counter):
-        fps = self.__vott_video_fps
-        fc = frame_counter
-        if frame_counter < 0:
-            fc = 0
-        if fps == 15:
-            return self.__fps_15_loop_counter[fc], self.__fps_15_loop_num[fc]
-        elif fps == 5:
-            return self.__fps_5_loop_counter[fc], self.__fps_5_loop_num[fc]
-
+    def get_pick_up_frame_interval(self, vott_video_fps):
+        source_video_fps = self.get_source_video_fps()
+        self.pym.PY_LOG(False, 'D', self.__class__, 'source_video_fps: %d' % source_video_fps)
+                                
+        interval = float(source_video_fps / vott_video_fps)
+        
+        # round 
+        interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'pick up frame interval : %.2f' % interval)                                                                  
+        return interval
 
 
