@@ -362,7 +362,7 @@ if __name__ == '__main__':
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
 
-    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.2_unstable')
+    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.3_unstable')
 
     # reading parameter from user pressing vott "auto track" button
     get_para_ok = True

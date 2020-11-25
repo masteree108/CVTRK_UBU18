@@ -26,6 +26,10 @@ class CV_TRACKER():
                        '8', '866667', '933333']
 
     # if there is needing another format fps please adding here
+
+    __frame_timestamp_DP_6fps = [0, 0.166667, 0.333333, 0.5, 0.666667, 0.833333]
+    __format_6fps = ['mp4', '166667', '333333', '5', '666667', '833333']
+
     __frame_timestamp_DP_5fps = [0, 0.2, 0.4, 0.6, 0.8]
     __format_5fps = ['mp4', '2', '4', '6', '8']
 
@@ -52,7 +56,18 @@ class CV_TRACKER():
             27              | == 28-1
             29              | == 30-1
 
-    (2) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
+    (2) setted project frame rate = 6, only pick 6 frames from 30 frames(1 sec)
+            pick_up_frame_interval = round(29/6) = 5
+            loop_counter(start number is 0)
+            pick up frame:  | judgemanet:   
+            4               | == 5-1 (pick_up_interval -1)
+            9               | == 10-1 
+            14              | == 15-1
+            19              | == 20-1
+            24              | == 25-1
+            29              | == 30-1
+
+    (3) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
             pick_up_frame_interval = round(29/5) = 6
             loop_counter(start number is 0)
             pick up frame:  | judgemanet:   
@@ -61,6 +76,7 @@ class CV_TRACKER():
             17              | == 18-1
             23              | == 24-1
             29              | == 30-1
+
     '''
 
 
@@ -161,6 +177,8 @@ class CV_TRACKER():
         if vott_video_fps == 15:
             return True
         # for adding new fps format use, please write it here
+        elif vott_video_fps == 6:
+            return True
         elif vott_video_fps == 5:
             return True
         else:
@@ -186,6 +204,8 @@ class CV_TRACKER():
         if fps == 15:
             return self.__check_which_frame_number(format_value, self.__format_15fps)
         # for adding new fps format use, please write it here
+        elif fps == 6:
+            return self.__check_which_frame_number(format_value, self.__format_6fps)
         elif fps == 5:
             return self.__check_which_frame_number(format_value, self.__format_5fps)
     
@@ -195,6 +215,8 @@ class CV_TRACKER():
         fc = frame_count -1
         if fps == 15:
             return self.__format_15fps[fc]
+        elif fps == 6:
+            return self.__format_6fps[fc]
         elif fps == 5:
             return self.__format_5fps[fc]
    
@@ -260,6 +282,8 @@ class CV_TRACKER():
         fps = self.__vott_video_fps
         if fps == 15:
             return self.__frame_timestamp_DP_15fps[fc]
+        elif fps == 6: 
+            return self.__frame_timestamp_DP_6fps[fc]
         elif fps == 5: 
             return self.__frame_timestamp_DP_5fps[fc]
     
@@ -278,7 +302,9 @@ class CV_TRACKER():
     def get_every_second_last_frame_timestamp(self):
         fps = self.__vott_video_fps
         if fps == 15:
-            return self.__frame_timestamp_DP_15fps[fps - 1]     
+            return self.__frame_timestamp_DP_15fps[fps - 1]
+        elif fps == 6:
+            return self.__frame_timestamp_DP_6fps[fps - 1]   
         elif fps == 5:
             return self.__frame_timestamp_DP_5fps[fps - 1]   
 
