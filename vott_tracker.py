@@ -3,29 +3,31 @@ import sys
 import read_vott_id_json as RVIJ
 import write_vott_id_json as WVIJ
 import cv_tracker as CVTR
-import read_project_vott as RPV 
+import process_project_vott as PPV 
 import log as PYM
 from vott_tracker_func import*
 import threading
 
 class Worker(threading.Thread):
-    def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
+    def __init__(self, num, lock, cvtr, rvij, ppv, wvij, send_data, pym):
         threading.Thread.__init__(self)
         self.num = num 
         self.lock = lock
         self.cvtr = cvtr
         self.rvij = rvij
         self.wvij = wvij
+        self.ppv = ppv
         self.frame_counter = send_data[0]
         self.bboxes = send_data[1]
         self.json_file_path = send_data[2]
         self.update_state = send_data[3]
         self.pym = pym
+
     def run(self):
         try:
             self.pym.PY_LOG(False, 'D', py_name, "Worker num:%d __run__" % self.num)
             self.lock.acquire()
-            deal_with_name_format_path(self.wvij, self.cvtr, self.frame_counter, self.update_state)
+            deal_with_name_format_path(self.wvij, self.cvtr, self.ppv, self.frame_counter, self.update_state)
             deal_with_BX_PT(self.wvij, self.bboxes) 
             self.wvij.create_id_asset_json_file(self.json_file_path)
             self.lock.release()
@@ -44,7 +46,7 @@ def fill_parent_and_tags_to_write_json(rvij, wvij):
     pym.PY_LOG(False, 'D', py_name , 'fill parent data and tags ok')
 
   
-def deal_with_name_format_path(wvij, cvtr, frame_counter, update_state): 
+def deal_with_name_format_path(wvij, cvtr, ppv, frame_counter, update_state): 
     
     now_frame_timestamp_DP = cvtr.get_now_frame_timestamp_DP(frame_counter)
     now_format = cvtr.get_now_format_value(frame_counter)
@@ -85,7 +87,10 @@ def deal_with_name_format_path(wvij, cvtr, frame_counter, update_state):
     wvij.save_asset_format(now_format)
     wvij.save_asset_name(now_asset_name)
     wvij.save_timestamp(now_timestamp)
-
+        
+    # package data for writing to project.vott
+    md5_id = wvij.get_asset_md5_id()
+    ppv.package_data_for_writing_to_project_vott(md5_id, now_format, now_asset_name, now_asset_path, now_timestamp)
 
 def deal_with_BX_PT(wvij, bboxes): 
     BX = [0,0,0,0]
@@ -100,18 +105,16 @@ def deal_with_BX_PT(wvij, bboxes):
         wvij.save_boundingBox(BX, i)
         wvij.save_points(PT, i)
 
-
-def PRV_class_new_and_initial(project_vott_file_path):
+def PPV_class_new_and_initial(project_vott_file_path, rvij):
     # default fps
-    # this class only to get fps that user setted ont the vott
-    # so if read fps finished,we can shut down save msg to log.txt in this class
     fps = 15 
-    prv = RPV.read_project_vott(project_vott_file_path)
-    if prv.check_file_exist() == False:
-        shutdown_log_and_show_error_msg("class read_project_vott failed!!", False)
+    ppv = PPV.process_project_vott(project_vott_file_path, rvij.get_asset_id())
+    if ppv.check_file_exist() == False:
+        rvij.shut_down_log('process_terminate')
+        shutdown_log_and_show_error_msg("class process_project_vott failed!!", False)
     else:
-        fps = prv.read_fps()
-    return fps
+        fps = ppv.read_fps()
+    return fps, ppv
 
 def RVIJ_class_new_and_initial(json_file_path):
     # get video's time that VoTT user to label track object 
@@ -179,7 +182,7 @@ def get_previous_data_for_next_json_file():
     asset_path = previous_data[2]
     return asset_name, timestamp, asset_path
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps):
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, ppv, vott_video_fps):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -195,12 +198,20 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
     # 2. opencv setting
     if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug) == False:
         msg = "opencv setting failed"
-        shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, True)
+        cvtr.destroy_debug_window()
+        rvij.shut_down_log('process_terminate')
+        ppv.shut_down_log('process_terminate')
+        cvtr.shut_down_log('process_terminate\n\n\n\n')
+        shutdown_log_and_show_error_msg(msg, True)
      
     # 3. check fps from project.vott
     if cvtr.check_support_fps(vott_video_fps) == False:
         msg = "this FrameExtractionRate: %d that user setted on the Vott is not support!!" % vott_video_fps
-        shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, True)
+        cvtr.destroy_debug_window()
+        rvij.shut_down_log('process_terminate')
+        ppv.shut_down_log('process_terminate')
+        cvtr.shut_down_log('process_terminate\n\n\n\n')
+        shutdown_log_and_show_error_msg(msg, True)
 
     return cvtr
 
@@ -214,6 +225,7 @@ def WVIJ_class_new_and_initial(target_path):
     else:
         return wvij
 
+
 def deal_with_data_saveto_newJsonFile(frame_counter, bboxes, json_file_path, update_state):
     # dealing with data and saving to a new json file
     send_data = []
@@ -222,6 +234,16 @@ def deal_with_data_saveto_newJsonFile(frame_counter, bboxes, json_file_path, upd
     send_data.append(json_file_path)
     send_data.append(update_state)
     return send_data
+
+def shutdown_log_and_show_error_msg_with_rvij(msg, rvij, remove_switch):
+    paras = []
+    paras.append(msg)
+    paras.append(pym)
+    paras.append(remove_switch)
+    paras.append(vott_source_info_path)
+    paras.append(vott_target_path)
+    do_shutdown_log_and_show_error_msg(paras)
+
 
 def shutdown_log_and_show_error_msg(msg, remove_switch):
     paras = []
@@ -232,37 +254,28 @@ def shutdown_log_and_show_error_msg(msg, remove_switch):
     paras.append(vott_target_path)
     do_shutdown_log_and_show_error_msg(paras)
 
-def shutdown_log_and_show_error_msg_with_rvij_cvtr(msg, rvij, cvtr, remove_switch):
-    paras = []
-    paras.append(msg)
-    paras.append(pym)
-    paras.append(remove_switch)
-    paras.append(vott_source_info_path)
-    paras.append(vott_target_path)
-    cvtr.destroy_debug_window()
-    do_shutdown_log_and_show_error_msg_with_rvij_cvtr(rvij, cvtr, paras)
-
-def shutdown_log_with_all(msg, pym, rvij, wvij, cvtr):
+def shutdown_log_with_all(msg, pym, rvij, ppv, wvij, cvtr):
     paras = []
     global track_success
     paras.append(msg)
     paras.append(track_success)
     paras.append(vott_source_info_path)
     paras.append(vott_target_path)
-    do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras)
+    do_shutdown_log_with_all(pym, rvij, ppv, wvij, cvtr, paras)
 
 def main(target_path, project_vott_file_path,  json_file_path, video_path, algorithm, main_paras):
     global track_success
 
     tracking_time = main_paras[0]
-    #initial class RPV(read fps that user setted on the VoTT project)
-    vott_video_fps = PRV_class_new_and_initial(project_vott_file_path)
-
+    
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
+    
+    #initial class PPV(read fps that user setted on the VoTT project)
+    vott_video_fps, ppv= PPV_class_new_and_initial(project_vott_file_path, rvij)
 
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps)
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, ppv, vott_video_fps)
         
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
@@ -319,7 +332,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                     send_data = deal_with_data_saveto_newJsonFile(frame_counter, \
                                                             bboxes, json_file_path, update_state)
 
-                    thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, wvij, send_data, pym))
+                    thread_list.append(Worker(thread_counter, json_file_lock, cvtr, rvij, ppv, wvij, send_data, pym))
                     thread_list[thread_counter].start()
                     thread_counter += 1
                     frame_counter += 1
@@ -331,7 +344,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                 for i in range(thread_counter):
                     thread_list[i].join()
                 
-                shutdown_log_with_all("process terminate",pym, rvij, wvij, cvtr)
+                shutdown_log_with_all("process terminate", pym, rvij, ppv, wvij, cvtr)
                 break
 
         for i in range(thread_counter):
@@ -341,7 +354,9 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
         if track_success == False:
             break
 
-    shutdown_log_with_all("__done__", pym, rvij, wvij, cvtr)
+    # writing data that we tracked into project.vott  
+    ppv.write_data_to_project_vott();
+    shutdown_log_with_all("__done__", pym, rvij, ppv, wvij, cvtr)
 
 
 if __name__ == '__main__':

@@ -5,12 +5,9 @@ from tkinter import *
 from tkinter import messagebox
 
 py_name = '< vott_tracker_func >'
-          
 # for hinding tk window and changing position
 root = Tk() 
 root.geometry(f"10x10+80+50")
-
-
 
 def read_vott_source_info(file_path, pym):
     # file ex:
@@ -43,7 +40,7 @@ def read_vott_source_info(file_path, pym):
 
     # get tracking_time       
     tracking_time = 1         
-    vc_tt = file_name.find(',')                                                                                                                                        
+    vc_tt = file_name.find(',')                                                                                                                             
     temp = file_name[vc_tt+1:]
     vc_tt = temp.find(',')   
     try:
@@ -128,38 +125,8 @@ def do_shutdown_log_and_show_error_msg(paras):
         remove_file(vott_target_path)
     sys.exit()
 
-def do_shutdown_log_and_show_error_msg_with_rvij_cvtr(rvij, cvtr, paras):
-    '''
-    paras:
-        index 0: msg
-        index 1: pym
-        index 2: remove below tmp file switch
-        index 3: vott_source_info
-        index 4: vott_project_path
-    '''
-
-    msg = paras[0]
-    pym = paras[1]
-    remove_switch = paras[2]
-    vott_source_info = paras[3]
-    vott_target_path = paras[4]
-
-
-    pym.PY_LOG(True, 'D', py_name, '__process_terminate__')
-    rvij.shut_down_log('__process_terminate___')
-    cvtr.shut_down_log(msg + '\n\n\n\n')
-    
-    # if remove_switch = false that is for analyzing those data while error happened
-    if remove_switch:
-        vott_source_info = paras[3]
-        vott_target_path = paras[4]
-        remove_file(vott_source_info)
-        remove_file(vott_target_path)
-    sys.exit()
-
-
-
-def do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras):
+def do_shutdown_log_with_all(pym, rvij, ppv, wvij, cvtr, paras):
+#def do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras):
     '''
     paras:
         index 0: msg
@@ -176,6 +143,7 @@ def do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras):
 
     pym.PY_LOG(True, 'D', py_name, msg)
     rvij.shut_down_log('__done__')
+    ppv.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
 

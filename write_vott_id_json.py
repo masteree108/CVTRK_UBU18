@@ -173,5 +173,6 @@ class write_vott_id_json():
     def shut_down_log(self, msg):
          self.pym.PY_LOG(True, 'D', self.__log_name, msg)
 
-
+    def get_asset_md5_id(self):
+        return self.__asset_id
 
