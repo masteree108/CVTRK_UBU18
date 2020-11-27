@@ -56,11 +56,17 @@ class process_project_vott():
     __label_size = {}
     __label_parent = {}
     __json_content = ''
-    
+    __target_path = ''
+    __track_data_path = ''
+
     def __open_file(self):
         f = open(self.__file_path, 'r')
         self.__json_content = json.loads(f.read())
         f.close()
+
+    def __open_new_file(self):
+        f = open(self.__track_data_path, 'w+')
+        f.close()   
 
     def __read_size_and_parent(self):
         size = {'size': self.__json_content['assets'][self.__label_id]['size']}
@@ -71,12 +77,18 @@ class process_project_vott():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'label data parent: %s' % self.__label_parent)
 
 # public
-    def __init__(self, file_path, label_id):
+    def __init__(self, target_path, file_path, label_id):
         #below(True) = exports log.txt
         self.pym = PYM.LOG(True)  
+        self.__target_path = target_path
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'target_path: %s' % target_path)  
+        self.__track_data_path = target_path + "track_data.json"
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'track_data.json path: %s' % self.__track_data_path)  
+        if os.path.exists(self.__track_data_path):
+            os.remove(self.__track_data_path)
         self.__file_path = file_path
-        self.__label_id= label_id
-    
+        self.__label_id= label_id      
+
     def check_file_exist(self):
         if os.path.exists(self.__file_path):
             self.pym.PY_LOG(False, 'D', self.__log_name, '%s existed!' % self.__file_path)    
@@ -92,7 +104,7 @@ class process_project_vott():
         self.pym.PY_LOG(False, 'D', self.__log_name, 'asset_id(key): %s' % data[asset_id])
         self.pym.PY_LOG(False, 'D', self.__log_name, 'id: %s' % data[asset_id]['id'])
         self.pym.PY_LOG(False, 'D', self.__log_name, 'format: %s' % data[asset_id]['format'])
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'name: %s' % data[asset_id]['name'])                                                       
+        self.pym.PY_LOG(False, 'D', self.__log_name, 'name: %s' % data[asset_id]['name'])                                   
         self.pym.PY_LOG(False, 'D', self.__log_name, 'path: %s' % data[asset_id]['path'])
         self.pym.PY_LOG(False, 'D', self.__log_name, 'size: %s' % data[asset_id]['size'])
         self.pym.PY_LOG(False, 'D', self.__log_name, 'parent: %s' % data[asset_id]['parent'])
@@ -128,7 +140,6 @@ class process_project_vott():
         self.__data_list.append(w_data)
 
     def write_data_to_project_vott(self):
-
         for i, w_data in enumerate(self.__data_list):
             self.show_data(self.__id_list[i], w_data)
             self.__json_content['assets'].update(w_data)
@@ -136,3 +147,9 @@ class process_project_vott():
         f = open(self.__file_path, 'w', newline='\n')
         new_json = json.dumps(self.__json_content, indent = 4)
         f.write(new_json)
+
+    def write_tmp_data_for_vott_using(self):                  
+        self.__open_new_file()                                
+        f = open(self.__track_data_path, 'w', newline='\n')   
+        new_json = json.dumps(self.__data_list, indent = 4)   
+        f.write(new_json)                                     

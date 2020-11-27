@@ -105,10 +105,10 @@ def deal_with_BX_PT(wvij, bboxes):
         wvij.save_boundingBox(BX, i)
         wvij.save_points(PT, i)
 
-def PPV_class_new_and_initial(project_vott_file_path, rvij):
+def PPV_class_new_and_initial(target_path, project_vott_file_path, rvij):
     # default fps
     fps = 15 
-    ppv = PPV.process_project_vott(project_vott_file_path, rvij.get_asset_id())
+    ppv = PPV.process_project_vott(target_path, project_vott_file_path, rvij.get_asset_id())
     if ppv.check_file_exist() == False:
         rvij.shut_down_log('process_terminate')
         shutdown_log_and_show_error_msg("class process_project_vott failed!!", False)
@@ -272,7 +272,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
     
     #initial class PPV(read fps that user setted on the VoTT project)
-    vott_video_fps, ppv= PPV_class_new_and_initial(project_vott_file_path, rvij)
+    vott_video_fps, ppv= PPV_class_new_and_initial(target_path, project_vott_file_path, rvij)
 
     # initial class CVTR
     cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, ppv, vott_video_fps)
@@ -355,7 +355,8 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
             break
 
     # writing data that we tracked into project.vott  
-    ppv.write_data_to_project_vott();
+    ppv.write_data_to_project_vott()
+    ppv.write_tmp_data_for_vott_using()
     shutdown_log_with_all("__done__", pym, rvij, ppv, wvij, cvtr)
 
 
