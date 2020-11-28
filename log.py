@@ -3,7 +3,7 @@ import time
 import threading
 import queue
 from datetime import datetime
-
+import platform
 
 class Worker(threading.Thread):
     def __init__(self, queue, num, lock, log_path):
@@ -47,7 +47,12 @@ class LOG():
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
             if not os.path.isfile(self.log_path):
-                os.mknod(self.log_name)
+                os_name = self.which_os()
+                print("OS: %s" % os_name)
+                if os_name == 'Linux':
+                    os.mknod(self.log_name)
+                else:
+                    self.create_file() 
         
         self.log_path = self.log_dir + self.log_name
         self.lock = threading.Lock()
@@ -59,6 +64,16 @@ class LOG():
         #print("LOG __del__")
         #self.log_worker1.join()
 
+    def which_os(self):
+        os_name = platform.system() 
+        #if os_name == 'Linux':
+        #elif os_name == 'Windows': 
+        return os_name
+
+    def create_file(self):
+        f = open(self.log_path, 'w+')
+        f.close()
+        
     def PY_LOG(self, exit_log, level, py_name, message):
         
         self.message_combine = ""
