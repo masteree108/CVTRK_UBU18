@@ -125,8 +125,7 @@ def do_shutdown_log_and_show_error_msg(paras):
         remove_file(vott_target_path)
     sys.exit()
 
-def do_shutdown_log_with_all(pym, rvij, ppv, wvij, cvtr, paras):
-#def do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras):
+def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
     '''
     paras:
         index 0: msg
@@ -143,7 +142,6 @@ def do_shutdown_log_with_all(pym, rvij, ppv, wvij, cvtr, paras):
 
     pym.PY_LOG(True, 'D', py_name, msg)
     rvij.shut_down_log('__done__')
-    ppv.shut_down_log('__done__')
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
 

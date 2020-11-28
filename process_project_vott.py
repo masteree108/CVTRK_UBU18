@@ -121,6 +121,9 @@ class process_project_vott():
         '''
         
         fps = self.__json_content["videoSettings"]["frameExtractionRate"] 
+        # this class will not use at the after step,so shut down save msg to log function
+        # set PY_LOG(True...
+        self.pym.PY_LOG(True, 'D', self.__log_name, 'get fps: %d' % fps)
         self.__read_size_and_parent()
         return fps  
 
