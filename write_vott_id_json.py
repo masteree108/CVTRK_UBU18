@@ -76,7 +76,12 @@ class write_vott_id_json():
             with open( new_json_file_path, 'r+') as f:
                 data = json.load(f)
                 data['asset']['id'] = self.__asset_id
-                data['asset']['format'] = self.__asset_format 
+                data['asset']['format'] = self.__asset_format
+                # about state on the VoTT judgement:
+                # if state = 1: no label and tag on this frame
+                # if state = 2: already labeled or taged
+                # we set state equals 3 becasue we need writing tracked data via VoTT process
+                data['asset']['state'] = 3
                 data['asset']['name'] = self.__asset_name
                 data['asset']['path'] = self.__asset_path
  
