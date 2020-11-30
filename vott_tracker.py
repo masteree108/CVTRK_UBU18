@@ -249,15 +249,15 @@ def shutdown_log_and_show_error_msg(msg, remove_switch):
 
 def shutdown_log_with_all(msg, pym, rvij, wvij, cvtr):
     paras = []
-    global track_success
+    global track_state
     paras.append(msg)
-    paras.append(track_success)
+    paras.append(track_state)
     paras.append(vott_source_info_path)
     paras.append(vott_target_path)
     do_shutdown_log_with_all(pym, rvij, wvij, cvtr, paras)
 
 def main(target_path, project_vott_file_path,  json_file_path, video_path, algorithm, main_paras):
-    global track_success
+    global track_state
 
     tracking_time = main_paras[0]
     
@@ -318,8 +318,8 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                         update_state = False
                     pick_up_frame = pick_up_frame + pick_up_frame_interval
                     pym.PY_LOG(False, 'D', py_name, '\n frame_counter: %d start' % frame_counter)
-                    bboxes, track_success = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
-                    if track_success == False:
+                    bboxes, track_state = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
+                    if track_state['no_error'] == False:
                         break
                     # dealing with data and saving to a new json file
                     send_data = deal_with_data_saveto_newJsonFile(frame_counter, \
@@ -332,7 +332,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
 
             except:
                 pym.PY_LOG(False, 'E', py_name, 'main loop has wrong condition!!')
-                track_success = False
+                track_state.update({'no_error' : False, 'failed_id': "no_id" })
                 cvtr.destroy_debug_window()
                 for i in range(thread_counter):
                     thread_list[i].join()
@@ -344,7 +344,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
             # run 1 tt loop, delete all threads
             thread_list[i].join()
         
-        if track_success == False:
+        if track_state['no_error'] == False:
             break
 
     shutdown_log_with_all("__done__", pym, rvij, wvij, cvtr)
@@ -360,8 +360,7 @@ if __name__ == '__main__':
     #ex vott_target_path = '../../../Drone_Target/vott_target_path.json'
 
     previous_data = []
-    track_success = True
-
+    track_state = {'no_error': True, 'failed_id' : "no_id"}
     paras = []
     main_paras = []
     # below(True) = exports log.txt

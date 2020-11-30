@@ -129,13 +129,13 @@ def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
     '''
     paras:
         index 0: msg
-        index 1: track_success
+        index 1: track_state
         index 2: vott_source_info
         index 3: vott_project_path
     '''
-
+    track_state = {}
     msg = paras[0]
-    track_success = paras[1]
+    track_state.update(paras[1])
     vott_source_info = paras[2]
     vott_target_path = paras[3]
 
@@ -147,9 +147,12 @@ def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
 
     remove_file(vott_source_info)
     remove_file(vott_target_path)
-    if track_success:
+    if track_state['no_error']:
         show_info_msg_on_toast("vott tracker", "tracking objects successfully!!")
     else:
-        show_info_msg_on_toast("vott tracker", "tracking objects failed!!")
+        if track_state['failed_id'] == "no_id":
+            show_info_msg_on_toast("vott tracker", "tracking objects failed!!")
+        else:
+            show_info_msg_on_toast("vott tracker", "tracking object %s failed, please modifying bbox size and try again or drop it!!" % track_state['failed_id'])
     sys.exit()
 
