@@ -23,8 +23,8 @@ def read_vott_source_info(file_path, pym):
         return False, "", "", ""
 
     f = open(file_path, "r")
-    # remove file:
     path = f.read()
+    f.close()
     path = path[5:]
     vc = 0
 
@@ -90,9 +90,14 @@ def read_vott_target_path(file_path, json_file_name, pym):
     return True, target_path, project_vott_file_path , json_file_path
 
 
-def remove_file(file_path):
-    if os.path.exists(file_path):
-        os.remove(file_path)
+def remove_file(file_path, pym):
+    pym.PY_LOG(False, 'D', py_name, 'delete file path: %s' % file_path)
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except:
+        pym.PY_LOG(False, 'E', py_name, 'delete file path: %s failed' % file_path)
+        
 
 
 def show_error_msg_on_toast(title, msg):
@@ -121,8 +126,8 @@ def do_shutdown_log_and_show_error_msg(paras):
     if remove_switch:
         vott_source_info = paras[3]
         vott_target_path = paras[4]
-        remove_file(vott_source_info)
-        remove_file(vott_target_path)
+        remove_file(vott_source_info, pym)
+        remove_file(vott_target_path, pym)
     sys.exit()
 
 def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
@@ -145,8 +150,8 @@ def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
     wvij.shut_down_log('__done__')
     cvtr.shut_down_log('__done__\n\n\n\n')
 
-    remove_file(vott_source_info)
-    remove_file(vott_target_path)
+    remove_file(vott_source_info, pym)
+    remove_file(vott_target_path, pym)
     if track_state['no_error']:
         show_info_msg_on_toast("vott tracker", "tracking objects successfully!!")
     else:
