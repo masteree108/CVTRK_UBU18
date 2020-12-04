@@ -291,6 +291,10 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     # for saving data to json file
     json_file_lock = threading.Lock()  
 
+    is_track_one_frame = False
+    if tracking_time<=1:
+        tracking_time = 1
+        is_track_one_frame = True
 
     for tt in range(tracking_time):
         # for saving data to json file
@@ -307,7 +311,12 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
         pick_up_frame = int(frame_counter * pick_up_frame_interval)
         pym.PY_LOG(False, 'D', py_name, 'start pick up frame: %d' % pick_up_frame)
 
-        for loop_counter in range(loop_start_frame, source_video_fps+1):
+        loop_last_frame = source_video_fps + 1
+        if is_track_one_frame:
+            loop_last_frame = pick_up_frame
+        pym.PY_LOG(False, 'D', py_name, 'loop_last_frame: %d' % loop_last_frame)
+
+        for loop_counter in range(loop_start_frame, loop_last_frame):
             try:
                 frame = cvtr.capture_video_frame()
                 if loop_counter == pick_up_frame-1:
