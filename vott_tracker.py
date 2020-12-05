@@ -292,7 +292,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     json_file_lock = threading.Lock()  
 
     is_track_one_frame = False
-    if tracking_time<=1:
+    if tracking_time<1:
         tracking_time = 1
         is_track_one_frame = True
 
@@ -306,22 +306,15 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                 pym.PY_LOG(False, 'D', py_name, '--------------first loop over-----------------\n')
             frame_counter = 1
 
-        loop_start_frame = int((frame_counter-1) * pick_up_frame_interval)
-        pym.PY_LOG(False, 'D', py_name, 'loop_start_frame: %d' % loop_start_frame)
-        pick_up_frame = int(frame_counter * pick_up_frame_interval)
-        pym.PY_LOG(False, 'D', py_name, 'start pick up frame: %d' % pick_up_frame)
 
-        loop_last_frame = source_video_fps + 1
-        if is_track_one_frame:
-            loop_last_frame = pick_up_frame
-        pym.PY_LOG(False, 'D', py_name, 'loop_last_frame: %d' % loop_last_frame)
-
+        pick_up_frame, loop_start_frame, loop_last_frame, frame_counter = get_pickup_start_last_frame_number(frame_counter, pick_up_frame_interval, \
+                                                                                                source_video_fps, is_track_one_frame, pym)
         for loop_counter in range(loop_start_frame, loop_last_frame):
             try:
                 frame = cvtr.capture_video_frame()
                 if loop_counter == pick_up_frame-1:
                     # first loop at most only pick up (vott_vidoe_fps-1) frames (frist frame is user using vott to track object) from source video frames
-                    if frame_counter == 1 and tt > 0:
+                    if frame_counter == 1 and (tt > 0 or is_track_one_frame):
                         update_state = True
                     else:
                         update_state = False

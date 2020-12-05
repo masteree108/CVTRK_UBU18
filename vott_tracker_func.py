@@ -161,3 +161,20 @@ def do_shutdown_log_with_all(pym, rvij,  wvij, cvtr, paras):
             show_info_msg_on_toast("vott tracker", "tracking object %s failed, please modifying bbox size and try again or drop it!!" % track_state['failed_id'])
     sys.exit()
 
+
+def get_pickup_start_last_frame_number(frame_counter, pick_up_frame_interval, source_video_fps, is_track_one_frame, pym):
+    loop_start_frame = int((frame_counter-1) * pick_up_frame_interval)
+    pick_up_frame = int(frame_counter * pick_up_frame_interval)                                                                                                    
+    loop_last_frame = source_video_fps + 1 
+    if is_track_one_frame:
+        if pick_up_frame >= source_video_fps:
+            loop_start_frame = 0 
+            frame_counter = 1
+            pick_up_frame = int(pick_up_frame_interval)
+        loop_last_frame = pick_up_frame
+            
+    pym.PY_LOG(False, 'D', py_name, 'loop_start_frame: %d' % loop_start_frame)
+    pym.PY_LOG(False, 'D', py_name, 'start pick up frame: %d' % pick_up_frame)
+    pym.PY_LOG(False, 'D', py_name, 'loop_last_frame: %d' % loop_last_frame)
+
+    return pick_up_frame, loop_start_frame, loop_last_frame, frame_counter
