@@ -1,40 +1,68 @@
 Version:
-NTUT_VoTT_2020_11_05_v0.0.2
+  
+  NTUT_VoTT_2020_12_09_v0.0.3
 
-Added function:
- (NTUT)(EXE) build an vott_tracker.exe for vott to track object
+    new function:
+      1. add multi tracker function
+      2. increase tracking loop times which decided by user specified
+      3. add track one frame function(user typed 0 into auto track inputbox)
+      4. add ID check and show ID on the debug windows
+      5. read frameExtractionRate from project.vott file
+      6. modify code to support fps equals 5 and 6 which is user setted on the VoTT
 
-    1.how to build an exe file,please as follows
-      $ ./build_exe.sh
-      execute it will be created vott_tracker.exe file and copied to below path:
-      ../../VoTT_NTUT/UBU18/NTUT/exe/vott_tracker.exe
-      (please note this path is following where downloaded project by repo command)
+    about fixed issue:
+      (WRITE_JSON_CLASS) fix regions id all the same in the json file that will cause bbox disappears on the VoTT
+      (LOG) fix issue that is vott_source_info.tmp file always open to cause system can not remove
+      (LOG) add new method to create log.txt while log.txt is not exist
+      (WRITE_JSON_CLASS) let VoTT writing data that vott_tracker tracked into VoTT project memory
 
-    2. modified log.py(save_path) file for vott. when user using label tool
-       will be executed vott_tracker.exe and saved log.txt at save_path
+  請參考測試結果:
 
-    3. doc_and_testcode/run_hello_exe just a test file
+==================================================================================
 
-    4. the details please refer to the below doc:
-    https://hackmd.io/@NTUTVOTT/HyrJJtDvP
+Version:
 
+  NTUT_VoTT_2020_11_05_v0.0.2
 
-2020/11/05
-test auto run vott_tracker.exe, below is results
-ubuntu 18.04: OK, tested by Ivan Yu
-windows 10	: OK, tested by Philip Chiang
+    Added function:
+      (NTUT)(EXE) build an vott_tracker.exe for vott to track object
 
+      1.how to build an exe file,please as follows
+        $ ./build_exe.sh
+        execute it will be created vott_tracker.exe file and copied to below path:
+        ../../VoTT_NTUT/UBU18/NTUT/exe/vott_tracker.exe
+        (please note this path is following where downloaded project by repo command)
+
+      2. modified log.py(save_path) file for vott. when user using label tool
+        will be executed vott_tracker.exe and saved log.txt at save_path
+
+      3. doc_and_testcode/run_hello_exe just a test file
+
+      4. the details please refer to the below doc:
+      https://hackmd.io/@NTUTVOTT/HyrJJtDvP
+
+==================================================================================
+
+測試結果：
+  2020/12/09
+    
+    test above funciton, below is the results
+    ubuntu 18.04: OK, tested by Ivan Yu
+    windows 10	: OK, tested by Philip Chiang
+    
+    Not finished yet:
+      cv_tracker.py:
+        (1) debug mode 1: SE_IWB(save images with bounding box)
+        (2) debug mode 2: SE_VWB(save video with bounging box)
+        
 Dependence:
- Ubuntu 18.04:
-  VoTT_NTUT/UBU18/release_note
-  CVTRK/UBU18/release_note
+  Ubuntu 18.04:
+    VoTT_NTUT/UBU18/release_note
+    CVTRK/UBU18/release_note
 
- Windows 10:
-  VoTT_NTUT\WIN10\release_note
-  CVTRK\WIN10\release_note
+  Windows 10:
+    VoTT_NTUT\WIN10\release_note
+    CVTRK\WIN10\release_note
 
-Not finished yet:
-cv_tracker.py:
-(1) debug mode 1: SE_IWB(save images with bounding box)
-(2) debug mode 2: SE_VWB(save video with bounging box)
+
 
