@@ -1,3 +1,17 @@
+
+Version:
+         
+  NTUT_VoTT_2020_12_22_v0.0.4 
+    (NTUT)(TOOL) add a serivce for auto executing vott_tracker.py 
+         
+    This is a test tool, you can use this tool like below instance
+    run vott.exe(build VoTT to exe file),but vott_tracker.exe no exectuing!
+    maybe your vott.exe hasn't includes some service about NTUT auto
+    track, so you can use this service to instead of those tracking service
+    on the vott
+         
+==================================================================================
+
 Version:
   
   NTUT_VoTT_2020_12_09_v0.0.3
@@ -44,9 +58,9 @@ Version:
 ==================================================================================
 
 測試結果：
-  2020/12/09
+  2020/12/22
     
-    test above funciton, below is the results
+    test service tool, below is the results
     ubuntu 18.04: OK, tested by Ivan Yu
     windows 10	: OK, tested by Philip Chiang
     
