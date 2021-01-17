@@ -17,43 +17,20 @@ def read_vott_source_info(file_path, pym):
     # file:C:/Drone_Source/Drone_001/Drone_001.mp4#t=305.533333,76a8e999e2d9232d8e26253551acb4b3-asset.json,time,tracking_time
 
     if os.path.exists(file_path):
-        pym.PY_LOG(False, 'D', py_name, 'vott_source_info.tmp: (path: %s) existed!' % file_path)
+        pym.PY_LOG(False, 'D', py_name, 'vott_source_info.json: (path: %s) existed!' % file_path)
     else:
-        pym.PY_LOG(False, 'E', py_name, 'vott_source_info.tmp: (path: %s) is not existed!' % file_path)
+        pym.PY_LOG(False, 'E', py_name, 'vott_source_info.json: (path: %s) is not existed!' % file_path)
         return False, "", "", ""
 
     f = open(file_path, "r")
+
     path = f.read()
     f.close()
-    path = path[5:]
-    vc = 0
-
-    # get source video path
-    vc = path.find('#')
-    video_path = path[:vc]
-    pym.PY_LOG(False, 'D', py_name, 'video_path: %s' % video_path)
-
-    # get json file(this file will be created when user used auto track function)
-    vc = path.find(',')
-    file_name = path[vc+1:]
-    pym.PY_LOG(False, 'D', py_name, 'file_name with time: %s' % file_name)
-
-    # get tracking_time       
-    tracking_time = 1         
-    vc_tt = file_name.find(',')                                                                                                                             
-    temp = file_name[vc_tt+1:]
-    vc_tt = temp.find(',')   
-    try:
-        tracking_time = int(temp[vc_tt+1:])
-        pym.PY_LOG(False, 'D', py_name, 'tracking_time: %d' % tracking_time)
-    except:
-        pym.PY_LOG(False, 'D', py_name, 'use default tracking_time 1')
-        tracking_time = 1
-                              
-    vc = file_name.find(',')  
-    json_file_name = file_name[:vc]
-    pym.PY_LOG(False, 'D', py_name, 'json_file_name without time: %s' % json_file_name)
-                              
+    reader = json.loads(path)
+    video_path = reader["file"]
+    json_file_name = reader["fileName"]
+    tracking_time = int(reader["time"])
+    pym.PY_LOG(False, 'D', py_name, "\n1:{} \n2:{} \n3:{}".format(video_path , json_file_name , tracking_time))       
     return True, video_path, json_file_name, tracking_time
 
 def read_vott_target_path(file_path, json_file_name, pym):
