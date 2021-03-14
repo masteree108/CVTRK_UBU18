@@ -30,8 +30,13 @@ def read_vott_source_info(file_path, pym):
     video_path = reader["file"]
     json_file_name = reader["fileName"]
     tracking_time = int(reader["time"])
+    tracking_fps = reader["fps"]
+    if tracking_fps == "org":
+        tracking_fps = 0
+    else:
+        tracking_fps = int(tracking_fps)
     pym.PY_LOG(False, 'D', py_name, "\n1:{} \n2:{} \n3:{}".format(video_path , json_file_name , tracking_time))       
-    return True, video_path, json_file_name, tracking_time
+    return True, video_path, json_file_name, tracking_time, tracking_fps
 
 def read_vott_target_path(file_path, json_file_name, pym):
     # this is a json file

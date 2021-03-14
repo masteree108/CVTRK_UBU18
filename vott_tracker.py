@@ -260,6 +260,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     global track_state
 
     tracking_time = main_paras[0]
+    tracking_fps = main_paras[1]
     
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
@@ -285,7 +286,10 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     # get soure_video_fps and loop_num_interval 
     #source_video_fps, loop_num_interval = get_loop_number_and_judge_interval(cvtr, vott_video_fps)
     source_video_fps = cvtr.get_source_video_fps()
+    if tracking_fps == 0:
+        tracking_fps = source_video_fps
     pick_up_frame_interval = cvtr.get_pick_up_frame_interval(vott_video_fps)
+    update_frame_interval = cvtr.get_update_frame_interval(tracking_fps)
     pym.PY_LOG(False, 'D', py_name, 'pick_up_frame_interval: %d' % pick_up_frame_interval)
     
     # for saving data to json file
@@ -309,9 +313,16 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
 
         pick_up_frame, loop_start_frame, loop_last_frame, frame_counter = get_pickup_start_last_frame_number(frame_counter, pick_up_frame_interval, \
                                                                                                 source_video_fps, is_track_one_frame, pym)
+        update_frame = loop_start_frame
         for loop_counter in range(loop_start_frame, loop_last_frame):
             try:
                 frame = cvtr.capture_video_frame()
+                # according to user choose tracking fps to track object on the vott settings
+                if loop_counter == update_frame:
+                    bboxes, track_state = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
+                    update_frame = update_frame + update_frame_interval
+
+                # picking up and saving about bbox and some info back to the vott
                 if loop_counter == pick_up_frame-1:
                     # first loop at most only pick up (vott_vidoe_fps-1) frames (frist frame is user using vott to track object) from source video frames
                     if frame_counter == 1 and (tt > 0 or is_track_one_frame):
@@ -320,7 +331,6 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                         update_state = False
                     pick_up_frame = pick_up_frame + pick_up_frame_interval
                     pym.PY_LOG(False, 'D', py_name, '\n frame_counter: %d start' % frame_counter)
-                    bboxes, track_state = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
                     if track_state['no_error'] == False:
                         break
                     # dealing with data and saving to a new json file
@@ -385,13 +395,14 @@ if __name__ == '__main__':
         shutdown_log_and_show_error_msg("read parameter from vott failed!!", False)
 
     if get_para_ok:
-        read_vott_source_info_ok, video_path, json_file_name, tracking_time = read_vott_source_info(vott_source_info_path, pym)
+        read_vott_source_info_ok, video_path, json_file_name, tracking_time, tracking_fps = read_vott_source_info(vott_source_info_path, pym)
         if read_vott_source_info_ok:
             read_vott_target_path_ok, target_path, project_vott_file_path, json_file_path = read_vott_target_path(vott_target_path, json_file_name, pym)
 
         if read_vott_source_info_ok and read_vott_target_path_ok:
             algorithm = 'CSRT'
             main_paras.append(tracking_time)
+            main_paras.append(tracking_fps)
             main(target_path, project_vott_file_path, json_file_path, video_path, algorithm, main_paras)
         else:
             shutdown_log_and_show_error_msg("read vott_source_info or read_vott_target_failed!!", False)

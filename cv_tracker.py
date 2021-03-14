@@ -36,10 +36,20 @@ class CV_TRACKER():
     '''
         pick up frame description:
         if source_video_fps = 29,
-        (1) setted project frame rate = 15, only pick 15 frames from 30 frames(1sec)
+        (1) setted project frame rate = 29, pick up 29 frames(1sec)
+            pick_up_frame_interval = 1
+            loop_counter(start number is 0)
+            pick up frame:  | judgement:   
+            0               | == 1-1 (pick_up_interval -1)
+            1               | == 2-1 
+            2               | == 3-1
+            ...
+            28              | == 29-1
+
+        (2) setted project frame rate = 15, only pick 15 frames from 30 frames(1sec)
             pick_up_frame_interval = round(29/15) = 2
             loop_counter(start number is 0)
-            pick up frame:  | judgemanet:   
+            pick up frame:  | judgement:   
             1               | == 2-1 (pick_up_interval -1)
             3               | == 4-1 
             5               | == 6-1
@@ -56,10 +66,10 @@ class CV_TRACKER():
             27              | == 28-1
             29              | == 30-1
 
-    (2) setted project frame rate = 6, only pick 6 frames from 30 frames(1 sec)
+        (3) setted project frame rate = 6, only pick 6 frames from 30 frames(1 sec)
             pick_up_frame_interval = round(29/6) = 5
             loop_counter(start number is 0)
-            pick up frame:  | judgemanet:   
+            pick up frame:  | judgement:   
             4               | == 5-1 (pick_up_interval -1)
             9               | == 10-1 
             14              | == 15-1
@@ -67,10 +77,10 @@ class CV_TRACKER():
             24              | == 25-1
             29              | == 30-1
 
-    (3) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
+        (4) setted project frame rate = 5, only pick 5 frames from 30 frames(1 sec)
             pick_up_frame_interval = round(29/5) = 6
             loop_counter(start number is 0)
-            pick up frame:  | judgemanet:   
+            pick up frame:  | judgement:   
             5               | == 6-1 (pick_up_interval -1)
             11              | == 12-1 
             17              | == 18-1
@@ -264,7 +274,7 @@ class CV_TRACKER():
             for i, newbox in enumerate(bboxes):
                 p1 = (int(newbox[0]), int(newbox[1]))
                 p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
-                # below rectangle last parament = return frame picture
+                # below rectangle last parameter = return frame picture
                 cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
                 # add ID onto video
                 cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 2, self.__bbox_colors[i], 3)
@@ -355,6 +365,16 @@ class CV_TRACKER():
         # round 
         interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
         self.pym.PY_LOG(False, 'D', self.__class__, 'pick up frame interval : %.2f' % interval)                                                                  
+        return interval
+
+    def get_update_frame_interval(self, tracking_fps):
+        source_video_fps = self.get_source_video_fps()
+                                
+        interval = float(source_video_fps / tracking_fps)
+        
+        # round 
+        interval = Context(prec=1, rounding=ROUND_HALF_UP).create_decimal(interval)
+        self.pym.PY_LOG(False, 'D', self.__class__, 'update frame interval : %.2f' % interval)                                                                  
         return interval
 
 
