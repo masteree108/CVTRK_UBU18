@@ -157,7 +157,7 @@ class CV_TRACKER():
     #del __del__(self):
         #deconstructor     
 
-    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug):
+    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -191,7 +191,7 @@ class CV_TRACKER():
         if self.__image_debug[IMAGE_DEBUG.SW_VWB.value] == 1 or \
            self.__image_debug[IMAGE_DEBUG.SE_IWB.value] == 1 or \
            self.__image_debug[IMAGE_DEBUG.SE_VWB.value] == 1 :
-            self.window_name = 'debug'
+            self.window_name = "tracking... ( " +  cv_tracker_version + " )"
             cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)                                                   
             cv2.resizeWindow(self.window_name, 1280, 720)
 

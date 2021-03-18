@@ -177,7 +177,7 @@ def get_previous_data_for_next_json_file():
     asset_path = previous_data[2]
     return asset_name, timestamp, asset_path
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps):
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -191,7 +191,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
     cvtr = CVTR.CV_TRACKER(video_path)
     
     # 2. opencv setting
-    if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug) == False:
+    if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug, cv_tracker_version) == False:
         msg = "opencv setting failed"
         cvtr.destroy_debug_window()
         rvij.shut_down_log('process_terminate')
@@ -261,7 +261,8 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
 
     tracking_time = main_paras[0]
     tracking_fps = main_paras[1]
-    
+    cv_tracker_version = main_paras[2]
+
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
     
@@ -269,7 +270,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     vott_video_fps = PPV_class_new_and_initial(target_path, project_vott_file_path, rvij)
 
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps)
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version)
         
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
@@ -378,8 +379,8 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
-
-    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: v0.0.3')
+    cv_tracker_version = "v0.0.5_unstable_3"
+    pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: %s' % cv_tracker_version)
 
     # reading parameter from user pressing vott "auto track" button
     get_para_ok = True
@@ -403,6 +404,7 @@ if __name__ == '__main__':
             algorithm = 'CSRT'
             main_paras.append(tracking_time)
             main_paras.append(tracking_fps)
+            main_paras.append(cv_tracker_version)
             main(target_path, project_vott_file_path, json_file_path, video_path, algorithm, main_paras)
         else:
             shutdown_log_and_show_error_msg("read vott_source_info or read_vott_target_failed!!", False)
