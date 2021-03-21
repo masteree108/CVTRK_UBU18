@@ -7,6 +7,7 @@ import process_project_vott as PPV
 import log as PYM
 from vott_tracker_func import*
 import threading
+import time
 
 class Worker(threading.Thread):
     def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
@@ -360,11 +361,14 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
         if track_state['no_error'] == False:
             break
 
+    elapsed_time = time.time() - start_time
+    pym.PY_LOG(False, 'D', py_name, 'elapsed time: %2f sec.' % elapsed_time)
     shutdown_log_with_all("__done__", pym, rvij, wvij, cvtr)
 
 
 if __name__ == '__main__':
     # ===========  Global variables set area start ==============
+    start_time = time.time()
     ROI_get_bbox = False 
     py_name = '< vott_tracker >' 
     vott_source_info_path = ''
@@ -379,7 +383,7 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
-    cv_tracker_version = "v0.0.5_unstable_3"
+    cv_tracker_version = "v0.0.5_unstable_4"
     pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: %s' % cv_tracker_version)
 
     # reading parameter from user pressing vott "auto track" button
