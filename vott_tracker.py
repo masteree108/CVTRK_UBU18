@@ -8,19 +8,23 @@ import log as PYM
 from vott_tracker_func import*
 import threading
 import time
+#Add support for when a program which uses multiprocessing has been frozen to produce a Windows executable. 
+#(Has been tested with py2exe, PyInstaller and cx_Freeze.)
+#reference:https://docs.python.org/3.7/library/multiprocessing.html?highlight=process#multiprocessing.freeze_support
+from multiprocessing import freeze_support
 
 class Worker(threading.Thread):
-    def __init__(self, num, lock, cvtr, rvij, wvij, send_data, pym):
+    def __init__(self, num, lock, cvtr, rvij, wvij, receive_data, pym):
         threading.Thread.__init__(self)
         self.num = num 
         self.lock = lock
         self.cvtr = cvtr
         self.rvij = rvij
         self.wvij = wvij
-        self.frame_counter = send_data[0]
-        self.bboxes = send_data[1]
-        self.json_file_path = send_data[2]
-        self.update_state = send_data[3]
+        self.frame_counter = receive_data[0]
+        self.bboxes = receive_data[1]
+        self.json_file_path = receive_data[2]
+        self.update_state = receive_data[3]
         self.pym = pym
 
     def run(self):
@@ -92,8 +96,8 @@ def deal_with_BX_PT(wvij, bboxes):
     BX = [0,0,0,0]
     PT = [0,0]
     for i, bbox in enumerate(bboxes):
-        BX[0] = bbox[3]  # height BX[0]
-        BX[1] = bbox[2]  # width BX[1]
+        BX[0] = abs(bbox[3]-bbox[1])  # height BX[0]
+        BX[1] = abs(bbox[2]-bbox[0])  # width BX[1]
         BX[2] = bbox[0]  # left BX[2]
         BX[3] = bbox[1]  # top BX[3]
         PT[0] = BX[1]+BX[2]
@@ -323,7 +327,6 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
                 if loop_counter == update_frame:
                     bboxes, track_state = cvtr.draw_boundbing_box_and_get(frame, rvij.get_ids())
                     update_frame = update_frame + update_frame_interval
-
                 # picking up and saving about bbox and some info back to the vott
                 if loop_counter == pick_up_frame-1:
                     # first loop at most only pick up (vott_vidoe_fps-1) frames (frist frame is user using vott to track object) from source video frames
@@ -367,6 +370,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
 
 
 if __name__ == '__main__':
+    freeze_support()
     # ===========  Global variables set area start ==============
     start_time = time.time()
     ROI_get_bbox = False 
@@ -383,7 +387,7 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
-    cv_tracker_version = "v0.0.5_unstable_4"
+    cv_tracker_version = "v0.0.5_unstable_5"
     pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: %s' % cv_tracker_version)
 
     # reading parameter from user pressing vott "auto track" button

@@ -3,8 +3,8 @@
 # pip install pyinstaller
 # note 3: chmod +x build_exe.sh
 
-pyinstaller -F ./vott_tracker.py
-cp -f ./dist/vott_tracker ../../VoTT_NTUT/UBU18/NTUT/exe/vott_tracker.exe
+pyinstaller -F --noconsole --onefile ./vott_tracker.py
+cp -f ./dist/vott_tracker ../../VoTT_NTUT/WIN10/NTUT/exe/vott_tracker.exe
 cp -f ./dist/vott_tracker ./vott_tracker.exe
 rm -rf dist
 rm -rf __pycache__

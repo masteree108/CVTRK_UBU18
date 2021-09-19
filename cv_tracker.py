@@ -4,6 +4,7 @@ import enum
 from random import randint
 import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
+import mot_class as mtc
 
 class IMAGE_DEBUG(enum.Enum):
     # SW_VWB: show video with bbox 
@@ -98,29 +99,6 @@ class CV_TRACKER():
     __vott_video_fps = 0
     __previous_bbox = []
 
-    def __get_algorithm_tracker(self, algorithm):
-        
-        if algorithm == 'BOOSTING':
-            tracker = cv2.TrackerBoosting_create()
-        elif algorithm == 'MIL':  
-            tracker = cv2.TrackerMIL_create()
-        elif algorithm == 'KCF':  
-            tracker = cv2.TrackerKCF_create()
-        elif algorithm == 'TLD':  
-            tracker = cv2.TrackerTLD_create()
-        elif algorithm == 'MEDIANFLOW':
-            tracker = cv2.TrackerMedianFlow_create()
-        elif algorithm == 'GOTURN':
-            tracker = cv2.TrackerGOTURN_create()
-        elif algorithm == 'CSRT':                       
-            tracker = cv2.TrackerCSRT_create()
-        elif algorithm == 'MOSSE':                                                                                          
-            tracker = cv2.TrackerMOSSE_create()
-        else: 
-            #default settings
-            tracker = cv2.TrackerCSRT_create()
-        return tracker
-
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
             if format_value == format_fps[count]:
@@ -173,11 +151,14 @@ class CV_TRACKER():
 
         # 3. setting tracker algorithm and init(one object also can use)
         frame = self.capture_video_frame()
-        self.__tracker = cv2.MultiTracker_create()
         for bbox in bboxes:
             self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
-            self.__tracker.add(self.__get_algorithm_tracker(algorithm), frame, bbox)
+        self.MTC = mtc.mot_class(frame, bboxes, algorithm)
 
+        process_task_num = self.MTC.read_process_task_num()
+        
+        self.pym.PY_LOG(False, 'D', self.__class__, 'process_task_num:')
+        self.pym.PY_LOG(False, 'D', self.__class__, process_task_num)
         self.pym.PY_LOG(False, 'D', self.__class__, 'VoTT_CV_TRACKER initial ok')
        
         # 20201025 ROI function is not maintained
@@ -268,17 +249,25 @@ class CV_TRACKER():
 
        
     def draw_boundbing_box_and_get(self, frame, ids):
-        ok, bboxes = self.__tracker.update(frame)
+        ok, bboxes = self.MTC.update(frame)
+        remove_tuple_bboxes = []
         track_state = {'no_error': True, 'failed_id': 'no_id'}
         if ok:
-            for i, newbox in enumerate(bboxes):
-                p1 = (int(newbox[0]), int(newbox[1]))
-                p2 = (int(newbox[0] + newbox[2]), int(newbox[1] + newbox[3]))
+            # show tracking result
+            for i,bbox in enumerate(bboxes):
+                remove_tuple_bboxes.append([])
+                #print(bbox)
+                (startX, startY, endX, endY) = bbox
+                remove_tuple_bboxes[i].append(startX)
+                remove_tuple_bboxes[i].append(startY)
+                remove_tuple_bboxes[i].append(endX)
+                remove_tuple_bboxes[i].append(endY)
+                p1 = (int(startX), int(startY))
+                p2 = (int(endX), int(endY))
                 # below rectangle last parameter = return frame picture
-                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 4, 0)
+                cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 3)
                 # add ID onto video
-                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_COMPLEX, 2, self.__bbox_colors[i], 3)
-
+                cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_SIMPLEX, 2, self.__bbox_colors[i], 3)
         else:
             track_state.update({'no_error': False, 'failed_id':"no_id"})
             for i, newbox in enumerate(bboxes):
@@ -301,10 +290,9 @@ class CV_TRACKER():
             self.__show_video_with_bounding_box(self.window_name ,frame, 1)
          
         self.__previous_bbox = []
-        for i, bbox in enumerate(bboxes):
+        for i, bbox in enumerate(remove_tuple_bboxes):
             self.__previous_bbox.append(bbox)
-        #self.__previous_bbox.append(bboxes)
-        return bboxes, track_state
+        return remove_tuple_bboxes, track_state
 
     def use_waitKey(self, value):
         cv2.waitKey(value)
