@@ -74,11 +74,13 @@ def read_vott_target_path(file_path, json_file_name, pym):
 
 def remove_file(file_path, pym):
     pym.PY_LOG(False, 'D', py_name, 'delete file path: %s' % file_path)
+    pym.PY_LOG(False, 'D', py_name, '===================================================   E  N  D   ==========================================================\n\n\n\n')
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
     except:
         pym.PY_LOG(False, 'E', py_name, 'delete file path: %s failed' % file_path)
+        pym.PY_LOG(False, 'D', py_name, '===================================================   E  N  D  ======================================================\n\n\n\n')
         
 
 

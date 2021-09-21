@@ -53,25 +53,87 @@ class read_vott_id_json():
             self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box left[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.left.value])
             self.pym.PY_LOG(False, 'D', self.__log_name, 'bounding box top[%d]:'% i + '%s' % self.__boundingBox[i][BBOX_ITEM.top.value])
 
+
+    def __get_duplicates(self, raw_list):
+        sorted_list = raw_list.copy()
+        sorted_list.sort()
+        duplicates = []
+        last = sorted_list[0]
+        for x in sorted_list[1:]:
+            if x == last:
+                duplicates.append(x)
+            last = x
+        return set(duplicates)
+
     def __read_id_from_tags(self):
-        state_table = ['ok', 'no_id', 'same_id']
+        state_table = ['ok', 'no_id', 'same_id', 'id_not_only_one']
+        same_obj_id_not_only_one = []
+        report_state = []
+        report_info = []
+        no_id = []
         for i, tags in enumerate(self.__tags):
-            for num in range(len(tags)):
-                if tags[num][:3] == 'id_':
-                    self.__ids.append(tags[num])
-                    break
+            temp = []
+            save_temp_sw = False
+            no_id.append([])
+            no_id[i] = 0
+            for j, tag in enumerate(tags):
+                if tag[:3] == 'id_':
+                    no_id[i] = 1
+                    self.__ids.append(tag)
+                    temp.append(tag)
+                    save_temp_sw = True
+            if save_temp_sw == True:
+                same_obj_id_not_only_one.append(temp)
+
         # no ID check
-        if len(self.__ids) != len(self.__tags):
-            self.pym.PY_LOG(True, 'E', self.__log_name, 'There are no ID')
-            return False, state_table[1]
-             
+        report_info.append([])
+        is_no_id = False
+        for i,val in enumerate(no_id):
+            if val == 0:
+                self.pym.PY_LOG(False, 'E', self.__log_name, 'There are no ID')
+                is_no_id = True
+                report_state.append(state_table[1])
+                break
+
+        if is_no_id == False:
+            report_state.append(state_table[0])
+
+
         # ID duplicate check
+        dup_ids = []
+        report_info.append([])
         if len(self.__ids) != len(set(self.__ids)):
-            self.pym.PY_LOG(True, 'E', self.__log_name, 'duplicated ID')
-            return False, state_table[2]
-             
-        self.pym.PY_LOG(False, 'D', self.__log_name, 'get ids: %s' % self.__ids)
-        return True, state_table[0]
+            dup_ids = list(self.__get_duplicates(self.__ids))
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'duplicate ids:')
+            self.pym.PY_LOG(False, 'E', self.__log_name, dup_ids)
+            if len(dup_ids) > 0:
+                report_state.append(state_table[2])
+                report_info[1].append(dup_ids)
+        else:
+            report_state.append(state_table[0])
+
+        
+        report_info.append([])
+        # check id tag is only one or not on the same object
+        is_id_on_the_same_obj = False
+        for i,id_tags in enumerate(same_obj_id_not_only_one):
+            if len(id_tags) != 1:
+                report_info[2].append(id_tags)
+                is_id_on_the_same_obj = True
+
+        if is_id_on_the_same_obj == True:
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'same object has not only one ID')
+            report_state.append(state_table[3])
+        else:
+            report_state.append(state_table[0])
+
+        for i,log in enumerate(report_state):
+            if log != state_table[0]:
+                self.pym.PY_LOG(True, 'E', self.__log_name, 'user labels tag not correct')
+                break
+
+        #self.pym.PY_LOG(False, 'D', self.__log_name, 'get ids: %s' % self.__ids)
+        return report_state, report_info
 
 # public
     def __init__(self, file_path):

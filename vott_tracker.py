@@ -128,15 +128,37 @@ def RVIJ_class_new_and_initial(json_file_path):
         shutdown_log_and_show_error_msg("class read_vott_id_json failed!!", True)
     else:
         # read data
-        read_id_ok, state = rvij.read_data_from_id_json_data()
-        if read_id_ok == False: 
+        report_state, report_info = rvij.read_data_from_id_json_data()
+        #if len(report_state) != 0:
+        check_items_are_correct = True
+        for i,state in enumerate(report_state):
             if state == 'no_id':
                 # there are no added ID on the VoTT
-                shutdown_log_and_show_error_msg("no added ID on the VoTT!!", True)
-                            
-            elif state == 'same_id': 
-                shutdown_log_and_show_error_msg("gave same ID on the VoTT!!", True)
-                            
+                pym.PY_LOG(False, 'D', py_name,  'theres one object who has no id')
+                msg = "no added ID on the VoTT!!"
+                check_items_are_correct = False
+                show_error_msg_on_toast("vott_tracker", msg)
+            
+            elif state == 'same_id':
+                msg = 'duplicate ID:'
+                for j,info in enumerate(report_info[i][0]):
+                    msg = msg + info + ' ,'
+                pym.PY_LOG(False, 'D', py_name, msg)
+                check_items_are_correct = False
+                show_error_msg_on_toast("vott_tracker", msg)
+    
+            elif state == 'id_not_only_one':
+                for j,info in enumerate(report_info[i]):
+                    msg = "same object but ID not only one: "
+                    for k,id_val in enumerate(info):
+                        msg = msg + id_val + ' ,'
+                    pym.PY_LOG(False, 'D', py_name, msg)
+                    check_items_are_correct = False
+                    show_error_msg_on_toast("vott_tracker", msg)
+
+        if check_items_are_correct == False:
+            msg = "please correct those on the vott"
+            shutdown_log_and_show_error_msg(msg, True)                      
         else:
             timestamp = rvij.get_timestamp()
 
@@ -200,7 +222,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
         msg = "opencv setting failed"
         cvtr.destroy_debug_window()
         rvij.shut_down_log('process_terminate')
-        cvtr.shut_down_log('process_terminate\n\n\n\n')
+        cvtr.shut_down_log('process_terminate\n\n')
         shutdown_log_and_show_error_msg(msg, True)
      
     # 3. check fps from project.vott
@@ -208,7 +230,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
         msg = "this FrameExtractionRate: %d that user setted on the Vott is not support!!" % vott_video_fps
         cvtr.destroy_debug_window()
         rvij.shut_down_log('process_terminate')
-        cvtr.shut_down_log('process_terminate\n\n\n\n')
+        cvtr.shut_down_log('process_terminate\n\n')
         shutdown_log_and_show_error_msg(msg, True)
 
     return cvtr
@@ -232,16 +254,6 @@ def deal_with_data_saveto_newJsonFile(frame_counter, bboxes, json_file_path, upd
     send_data.append(json_file_path)
     send_data.append(update_state)
     return send_data
-
-def shutdown_log_and_show_error_msg_with_rvij(msg, rvij, remove_switch):
-    paras = []
-    paras.append(msg)
-    paras.append(pym)
-    paras.append(remove_switch)
-    paras.append(vott_source_info_path)
-    paras.append(vott_target_path)
-    do_shutdown_log_and_show_error_msg(paras)
-
 
 def shutdown_log_and_show_error_msg(msg, remove_switch):
     paras = []
@@ -387,7 +399,7 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
-    cv_tracker_version = "v0.0.5_unstable_5"
+    cv_tracker_version = "v0.0.5_unstable_6"
     pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: %s' % cv_tracker_version)
 
     # reading parameter from user pressing vott "auto track" button
