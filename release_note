@@ -1,3 +1,15 @@
+Version:
+         
+  NTUT_VoTT_2021_09_21_v0.0.5 
+	new commit:
+		1.(NTUT)(WRITE_JSON_CLASS) write vott_tracker to json type
+		2.(NTUT)(MULTI_TRACKER) according to user sets fps to track object from vott setting
+    3.(NTUT)(version) show vott version on the tracking window
+		4.(NTUT)(TIME) add elapsed time function(for showing tracking elapsed time)
+		5.(NTUT)(MULTI_CORE_TRACKER) using multi-core tracker to replace multi-thread tracker
+		6.(NTUT)(READ_VOTT) add duplicate ID and same object has not only one id check
+
+==================================================================================
 
 Version:
          
@@ -58,19 +70,14 @@ Version:
 ==================================================================================
 
 測試結果：
-  2020/12/22
+  2021/09/21
     
     test service tool, below is the results
-    ubuntu 18.04: OK, tested by Ivan Yu
-    windows 10	: OK, tested by Philip Chiang
-    
-    Not finished yet:
-      cv_tracker.py:
-        (1) debug mode 1: SE_IWB(save images with bounding box)
-        (2) debug mode 2: SE_VWB(save video with bounging box)
+    ubuntu 20.04: OK, tested by Ivan Yu
+    windows 10	: OK, tested by Ivan Yu
         
 Dependence:
-  Ubuntu 18.04:
+  Ubuntu 20.04:
     VoTT_NTUT/UBU18/release_note
     CVTRK/UBU18/release_note
 
