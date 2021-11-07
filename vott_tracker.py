@@ -204,7 +204,7 @@ def get_previous_data_for_next_json_file():
     asset_path = previous_data[2]
     return asset_name, timestamp, asset_path
 
-def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version):
+def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version, bbox_calibration_st):
     # class cvtr that is about VoTT openCV tracker settings
     
     # debug mode
@@ -218,7 +218,7 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
     cvtr = CVTR.CV_TRACKER(video_path)
     
     # 2. opencv setting
-    if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug, cv_tracker_version) == False:
+    if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug, cv_tracker_version, bbox_calibration_st) == False:
         msg = "opencv setting failed"
         cvtr.destroy_debug_window()
         rvij.shut_down_log('process_terminate')
@@ -279,6 +279,7 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     tracking_time = main_paras[0]
     tracking_fps = main_paras[1]
     cv_tracker_version = main_paras[2]
+    bbox_calibration_st = main_paras[3]
 
     # initial class RVIJ
     rvij, timestamp, bboxes = RVIJ_class_new_and_initial(json_file_path)
@@ -287,8 +288,14 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     vott_video_fps = PPV_class_new_and_initial(target_path, project_vott_file_path, rvij)
 
     # initial class CVTR
-    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version)
-        
+    cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, vott_video_fps, cv_tracker_version, bbox_calibration_st)
+    if bbox_calibration_st == True:
+        bboxes_temp = cvtr. get_bbox_calibration()
+        if len(bboxes_temp) == len(bboxes):
+            bboxes = bboxes_temp
+            #save back calibrated bboxes to source id-asset.json file
+            rvij.update_calibration_bboxes(bboxes_temp)
+
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 
 
@@ -416,7 +423,7 @@ if __name__ == '__main__':
         shutdown_log_and_show_error_msg("read parameter from vott failed!!", False)
 
     if get_para_ok:
-        read_vott_source_info_ok, video_path, json_file_name, tracking_time, tracking_fps = read_vott_source_info(vott_source_info_path, pym)
+        read_vott_source_info_ok, video_path, json_file_name, tracking_time, tracking_fps, bbox_calibration_st = read_vott_source_info(vott_source_info_path, pym)
         if read_vott_source_info_ok:
             read_vott_target_path_ok, target_path, project_vott_file_path, json_file_path = read_vott_target_path(vott_target_path, json_file_name, pym)
 
@@ -425,6 +432,7 @@ if __name__ == '__main__':
             main_paras.append(tracking_time)
             main_paras.append(tracking_fps)
             main_paras.append(cv_tracker_version)
+            main_paras.append(bbox_calibration_st)
             main(target_path, project_vott_file_path, json_file_path, video_path, algorithm, main_paras)
         else:
             shutdown_log_and_show_error_msg("read vott_source_info or read_vott_target_failed!!", False)

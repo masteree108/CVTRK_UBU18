@@ -31,12 +31,19 @@ def read_vott_source_info(file_path, pym):
     json_file_name = reader["fileName"]
     tracking_time = int(reader["time"])
     tracking_fps = reader["fps"]
+    bbox_calibration_st = reader["bbox_calibration"]
     if tracking_fps == "org":
         tracking_fps = 0
     else:
         tracking_fps = int(tracking_fps)
+    
+    if bbox_calibration_st == True:
+        pym.PY_LOG(False, 'D', py_name, 'using bbox_calibration function!')
+    else:
+        pym.PY_LOG(False, 'D', py_name, 'no using bbox_calibration function!')
+
     pym.PY_LOG(False, 'D', py_name, "\n1:{} \n2:{} \n3:{}".format(video_path , json_file_name , tracking_time))       
-    return True, video_path, json_file_name, tracking_time, tracking_fps
+    return True, video_path, json_file_name, tracking_time, tracking_fps, bbox_calibration_st
 
 def read_vott_target_path(file_path, json_file_name, pym):
     # this is a json file

@@ -244,3 +244,35 @@ class read_vott_id_json():
 
     def get_ids(self):
         return self.__ids
+
+    def update_calibration_bboxes(self, bboxes):
+        try:
+            with open( self.__file_path, 'r+') as f:
+                data = json.load(f)
+                for i,bbox in enumerate(bboxes):
+                    # only updata bbox and bbox position
+                    data['regions'][i]['boundingBox']["height"] = bbox[0]
+                    data['regions'][i]['boundingBox']["width"] = bbox[1]
+                    data['regions'][i]['boundingBox']["left"] = bbox[2]
+                    data['regions'][i]['boundingBox']["top"] = bbox[3]
+                    data['regions'][i]['points'][0]["x"] = bbox[2]
+                    data['regions'][i]['points'][0]["y"] = bbox[3]
+
+                    data['regions'][i]['points'][1]["x"] = bbox[1] + bbox[2]
+                    data['regions'][i]['points'][1]["y"] = bbox[3]
+
+                    data['regions'][i]['points'][2]["x"] = bbox[1] + bbox[2]
+                    data['regions'][i]['points'][2]["y"] = bbox[0] + bbox[3]
+
+                    data['regions'][i]['points'][3]["x"] = bbox[2]
+                    data['regions'][i]['points'][3]["y"] = bbox[0] + bbox[3]
+
+                f.close()
+            
+            # save modified bboxes content
+            with open( self.__file_path, 'w') as f:
+                json.dump(data, f, indent = 4)
+                f.close()
+        except:
+            self.pym.PY_LOG(False, 'E', self.__log_name, 'write calibrated bboxes back failed!!')
+

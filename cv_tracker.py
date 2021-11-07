@@ -5,6 +5,8 @@ from random import randint
 import log as PYM
 from _pydecimal import Decimal, Context, ROUND_HALF_UP
 import mot_class as mtc
+import yolo_object_detection as yolo_obj
+import numpy as np
 
 class IMAGE_DEBUG(enum.Enum):
     # SW_VWB: show video with bbox 
@@ -98,6 +100,8 @@ class CV_TRACKER():
     __bbox_colors = []
     __vott_video_fps = 0
     __previous_bbox = []
+    __calibrated_bboxes = []
+    __calibration_IOU = 0.4
 
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
@@ -126,6 +130,74 @@ class CV_TRACKER():
             return True
         return False
 
+    def __IOU_check_for_first_frame(self, user_bboxes, yolo_bboxes):
+        self.pym.PY_LOG(False, 'D', self.__class__, '__IOU_check_for_first_frame')
+        update_bboxes = []
+        for i,user_bbox in enumerate(user_bboxes):
+            iou_temp = []
+            boxSRCArea = (user_bbox[2] + 1) * (user_bbox[3] + 1)
+            for i, yolo_bbox in enumerate(yolo_bboxes):
+                xA = max(user_bbox[0], yolo_bbox[0])
+                # print("xA:%.2f" % xA)
+                yA = max(user_bbox[1], yolo_bbox[1])
+                # print("yA:%.2f" % yA)
+                xB = min(user_bbox[0] + user_bbox[2], yolo_bbox[0] + yolo_bbox[2])
+                # print("xB:%.2f" % xB)
+                yB = min(user_bbox[1] + user_bbox[3], yolo_bbox[1] + yolo_bbox[3])
+                # print("yB:%.2f" % yB)
+                interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+                # print("interArea:%.2f" % interArea)
+         
+                boxADJArea = (yolo_bbox[2] + 1) * (yolo_bbox[3] + 1)
+                # compute the intersection over union by taking the intersection
+                # area and dividing it by the sum of prediction  ground-truth
+                # areas - the intersection area
+                iou = interArea / float(boxSRCArea + boxADJArea - interArea)
+                iou_temp.append(iou)
+         
+            iou_array = np.array(iou_temp)
+            index = np.argmax(iou_array)
+         
+            if iou_array[index] >= self.__calibration_IOU:
+                # this condition that expresses needs use calibrated bbox from yolo
+                update_bboxes.append(yolo_bboxes[index])
+            else:
+                # this condition that expresses no needs use calibrated bbox from yolo
+                update_bboxes.append(user_bbox)
+        return update_bboxes
+
+
+    def __run_bbox_calibration(self, frame, user_bboxes):
+        self.__calibrated_bboxes = []
+        # 1.using yolov4 to calibarte bbox
+        yolo_v4 = yolo_obj.yolo_object_detection('person')
+        yolo_bboxes = []
+        yolo_bboxes = yolo_v4.run_detection(frame, False) #second parameter is an switch to save after yolo result image
+
+        calibrated_bboxes = self.__IOU_check_for_first_frame(user_bboxes, yolo_bboxes)
+        self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:user_bboxes')
+        self.pym.PY_LOG(False, 'D', self.__class__, user_bboxes)
+
+        # 2. save those bboxes which calibrated
+        update_bboxes = []
+        for i,bbox in enumerate(calibrated_bboxes):
+            
+            bbox_p0 = bbox[0]   #left
+            bbox_p1 = bbox[1]   #top
+            bbox_p2 = bbox[2]   #width
+            bbox_p3 = bbox[3]   #height
+            update_bboxes.append((bbox_p0,bbox_p1,bbox_p2, bbox_p3))
+            self.__calibrated_bboxes.append([])
+            self.__calibrated_bboxes[i].append(bbox_p3) #height
+            self.__calibrated_bboxes[i].append(bbox_p2) #width
+            self.__calibrated_bboxes[i].append(bbox_p0) #left
+            self.__calibrated_bboxes[i].append(bbox_p1) #top
+
+        self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:calibrated_bboxes')
+        self.pym.PY_LOG(False, 'D', self.__class__, update_bboxes)
+
+        return update_bboxes
+
 # public
     def __init__(self, video_path):
         # below(True) = exports log.txt
@@ -135,7 +207,7 @@ class CV_TRACKER():
     #del __del__(self):
         #deconstructor     
 
-    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version):
+    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version, bbox_calibration):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -153,6 +225,11 @@ class CV_TRACKER():
         frame = self.capture_video_frame()
         for bbox in bboxes:
             self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
+
+        # 4. using yolov4 to calibrate bbox's height and width or not
+        if bbox_calibration == True:
+            bboxes = self.__run_bbox_calibration(frame, bboxes)
+            
         self.MTC = mtc.mot_class(frame, bboxes, algorithm)
 
         process_task_num = self.MTC.read_process_task_num()
@@ -165,7 +242,7 @@ class CV_TRACKER():
         #if ROI_get_bbox:
           # bbox = self.use_ROI_select('ROI_select', frame)
     
-        # 4. for debuging
+        # 5. for debuging
         self.__image_debug[IMAGE_DEBUG.SW_VWB.value] = image_debug[0]
         self.__image_debug[IMAGE_DEBUG.SE_IWB.value] = image_debug[1]
         self.__image_debug[IMAGE_DEBUG.SE_VWB.value] = image_debug[2]
@@ -176,10 +253,11 @@ class CV_TRACKER():
             cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)                                                   
             cv2.resizeWindow(self.window_name, 1280, 720)
 
-        # 5. just show video format information
+        # 6. just show video format information
         self.show_video_format_info()
-       
-        # 6. save init bboxes for checking track failed condition
+
+        
+        # 7. save init bboxes for checking track failed condition
         for i, bbox in enumerate(bboxes):
             temp = []
             temp.append(bbox[0])
@@ -365,4 +443,6 @@ class CV_TRACKER():
         self.pym.PY_LOG(False, 'D', self.__class__, 'update frame interval : %.2f' % interval)                                                                  
         return interval
 
+    def get_bbox_calibration(self):
+        return self.__calibrated_bboxes
 
