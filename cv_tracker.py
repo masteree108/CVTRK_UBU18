@@ -157,7 +157,19 @@ class CV_TRACKER():
          
             iou_array = np.array(iou_temp)
             index = np.argmax(iou_array)
-         
+            self.pym.PY_LOG(False, 'D', self.__class__, "bbox_SRCArea:%d"%boxSRCArea)
+            '''
+            if boxSRCArea >= 500000:
+                calibration_IOU = 0.4
+            elif boxSRCArea < 400000 and boxSRCArea >= 300000:
+                calibration_IOU = 0.3
+            elif boxSRCArea < 300000 and boxSRCArea >= 200000:
+                calibration_IOU = 0.2
+            elif boxSRCArea < 200000 and boxSRCArea >= 0:
+                calibration_IOU = 0.1
+            print(iou_array[index])
+            if iou_array[index] >= calibration_IOU:
+            '''
             if iou_array[index] >= self.__calibration_IOU:
                 # this condition that expresses needs use calibrated bbox from yolo
                 update_bboxes.append(yolo_bboxes[index])
@@ -167,12 +179,13 @@ class CV_TRACKER():
         return update_bboxes
 
 
-    def __run_bbox_calibration(self, frame, user_bboxes, debug_img_sw):
+    def __run_bbox_calibration(self, frame, user_bboxes, bbox_calibration_strength, debug_img_sw):
         self.__calibrated_bboxes = []
         # 1.using yolov4 to calibarte bbox
+        self.pym.PY_LOG(False, 'D', self.__class__, "bbox_calibration_strength:%s"%bbox_calibration_strength)
         yolo_v4 = yolo_obj.yolo_object_detection('person')
         yolo_bboxes = []
-        yolo_bboxes = yolo_v4.run_detection(frame, False) #second parameter is an switch to save after yolo result image
+        yolo_bboxes = yolo_v4.run_detection(frame, bbox_calibration_strength, True) #last parameter is an switch to save after yolo result image
         #self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:yolo_bboxes')
         #self.pym.PY_LOG(False, 'D', self.__class__, yolo_bboxes)
 
@@ -214,7 +227,7 @@ class CV_TRACKER():
             self.__calibrated_bboxes[i].append(bbox_p0) #left
             self.__calibrated_bboxes[i].append(bbox_p1) #top
 
-        self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:calibrated_bboxes')
+        self.pym.PY_LOG(False, 'D', self.__class__, "__run_bbox_calibration,calibrated_bboxes:")
         self.pym.PY_LOG(False, 'D', self.__class__, update_bboxes)
 
         return update_bboxes
@@ -228,7 +241,8 @@ class CV_TRACKER():
     #del __del__(self):
         #deconstructor     
 
-    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, cv_tracker_version, bbox_calibration):
+    def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, \
+                    cv_tracker_version, bbox_calibration, bbox_calibration_strength):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
@@ -249,7 +263,7 @@ class CV_TRACKER():
 
         # 4. using yolov4 to calibrate bbox's height and width or not
         if bbox_calibration == True:
-            bboxes = self.__run_bbox_calibration(frame, bboxes, False)
+            bboxes = self.__run_bbox_calibration(frame, bboxes, bbox_calibration_strength, False)
             
         self.MTC = mtc.mot_class(frame, bboxes, algorithm)
 
