@@ -167,26 +167,47 @@ class CV_TRACKER():
         return update_bboxes
 
 
-    def __run_bbox_calibration(self, frame, user_bboxes):
+    def __run_bbox_calibration(self, frame, user_bboxes, debug_img_sw):
         self.__calibrated_bboxes = []
         # 1.using yolov4 to calibarte bbox
         yolo_v4 = yolo_obj.yolo_object_detection('person')
         yolo_bboxes = []
         yolo_bboxes = yolo_v4.run_detection(frame, False) #second parameter is an switch to save after yolo result image
+        #self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:yolo_bboxes')
+        #self.pym.PY_LOG(False, 'D', self.__class__, yolo_bboxes)
 
         calibrated_bboxes = self.__IOU_check_for_first_frame(user_bboxes, yolo_bboxes)
         self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:user_bboxes')
         self.pym.PY_LOG(False, 'D', self.__class__, user_bboxes)
 
+        if debug_img_sw == True:
+            compare_frame = frame.copy()
+            for i, yolo_bbox in enumerate(yolo_bboxes):                                                                    
+                (x, y) = (yolo_bbox[0], yolo_bbox[1])
+                (w, h) = (yolo_bbox[2], yolo_bbox[3])
+                cv2.rectangle(compare_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            for i, user_bbox in enumerate(user_bboxes):
+                bbox_temp = []
+                bbox_temp.append(int(user_bbox[0]))
+                bbox_temp.append(int(user_bbox[1]))
+                bbox_temp.append(int(user_bbox[2]))
+                bbox_temp.append(int(user_bbox[3]))
+                
+                (x, y) = (bbox_temp[0], bbox_temp[1])
+                (w, h) = (bbox_temp[2], bbox_temp[3])
+                cv2.rectangle(compare_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+
+            cv2.imwrite("IOU.png", compare_frame)
+
         # 2. save those bboxes which calibrated
         update_bboxes = []
         for i,bbox in enumerate(calibrated_bboxes):
-            
             bbox_p0 = bbox[0]   #left
             bbox_p1 = bbox[1]   #top
             bbox_p2 = bbox[2]   #width
             bbox_p3 = bbox[3]   #height
-            update_bboxes.append((bbox_p0,bbox_p1,bbox_p2, bbox_p3))
+            update_bboxes.append((bbox_p0, bbox_p1, bbox_p2, bbox_p3))
             self.__calibrated_bboxes.append([])
             self.__calibrated_bboxes[i].append(bbox_p3) #height
             self.__calibrated_bboxes[i].append(bbox_p2) #width
@@ -228,7 +249,7 @@ class CV_TRACKER():
 
         # 4. using yolov4 to calibrate bbox's height and width or not
         if bbox_calibration == True:
-            bboxes = self.__run_bbox_calibration(frame, bboxes)
+            bboxes = self.__run_bbox_calibration(frame, bboxes, False)
             
         self.MTC = mtc.mot_class(frame, bboxes, algorithm)
 
