@@ -1,5 +1,16 @@
 Version:
          
+  NTUT_VoTT_2021_11_21_v0.0.6
+	new commit:
+		1.using yolov4 to calibrate bounding box's height and width
+		2.add a switch to save IoU image or not
+		3.according to user setted bbox crilbration strength to decide crop image size for transferring to yolo
+
+==================================================================================
+
+
+Version:
+         
   NTUT_VoTT_2021_09_21_v0.0.5 
 	new commit:
 		1.(NTUT)(WRITE_JSON_CLASS) write vott_tracker to json type
@@ -70,7 +81,7 @@ Version:
 ==================================================================================
 
 測試結果：
-  2021/09/21
+  2021/11/21
     
     test service tool, below is the results
     ubuntu 20.04: OK, tested by Ivan Yu
