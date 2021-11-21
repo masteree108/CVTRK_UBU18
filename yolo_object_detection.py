@@ -1,7 +1,7 @@
-# please goto below link to download yolov4.cfg and yolov4.weights,
-# goto this https://github.com/AlexeyAB/darknet/tree/master/cfg/yolov4.cfg and copy those content and save to yolov4.cfg
-# wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights
-# and put those files into yolo-coco_v4
+# please goto below link to download yolov3.cfg and yolov3.weights,
+# goto this https://github.com/AlexeyAB/darknet/tree/master/cfg/yolov3.cfg and copy those content and save to yolov3.cfg
+# wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov3.weights
+# and put those files into yolo-coco_v3
 # import the necessary packages
 from imutils.video import FPS
 import numpy as np
@@ -12,9 +12,9 @@ import os
 
 class yolo_object_detection():
 # private
-    __labelsPath = "./yolo-coco_v4/coco.names"
-    __weightsPath = "./yolo-coco_v4/yolov4.weights"
-    __configPath = "./yolo-coco_v4/yolov4.cfg"
+    __labelsPath = "./NTUT/yolo-coco_v3/coco.names"
+    __weightsPath = "./NTUT/yolo-coco_v3/yolov3.weights"
+    __configPath = "./NTUT/yolo-coco_v3/yolov3.cfg"
     __confidence_setting = 0.5
     __threshold = 0.2
 
@@ -145,7 +145,7 @@ class yolo_object_detection():
                 color = [int(c) for c in self.__COLORS[classIDs[i]]]
                 cv2.rectangle(out_frame, (x, y), (x + w, y + h), color, 2)
 
-            cv2.imwrite("yolov4_detection_without_nms.png", out_frame)
+            cv2.imwrite("yolov3_detection_without_nms.png", out_frame)
         # apply non-maxima suppression to suppress weak, overlapping
         # bounding boxes
         '''
@@ -166,7 +166,7 @@ class yolo_object_detection():
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     text = "{}: {:.4f}".format(self.__LABELS[classIDs[i]], confidences[i])
                     cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        cv2.imwrite("yolov4_detection_with_nms.png",frame)
+        cv2.imwrite("yolov3_detection_with_nms.png",frame)
         '''
         return boxes
 

@@ -101,7 +101,7 @@ class CV_TRACKER():
     __vott_video_fps = 0
     __previous_bbox = []
     __calibrated_bboxes = []
-    __calibration_IOU = 0.4
+    __calibration_IOU = 0.1
 
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
@@ -181,11 +181,11 @@ class CV_TRACKER():
 
     def __run_bbox_calibration(self, frame, user_bboxes, bbox_calibration_strength, debug_img_sw):
         self.__calibrated_bboxes = []
-        # 1.using yolov4 to calibarte bbox
+        # 1.using yolov3 to calibarte bbox
         self.pym.PY_LOG(False, 'D', self.__class__, "bbox_calibration_strength:%s"%bbox_calibration_strength)
-        yolo_v4 = yolo_obj.yolo_object_detection('person')
+        yolo_v3 = yolo_obj.yolo_object_detection('person')
         yolo_bboxes = []
-        yolo_bboxes = yolo_v4.run_detection(frame, bbox_calibration_strength, True) #last parameter is an switch to save after yolo result image
+        yolo_bboxes = yolo_v3.run_detection(frame, bbox_calibration_strength, False) #last parameter is an switch to save after yolo result image
         #self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:yolo_bboxes')
         #self.pym.PY_LOG(False, 'D', self.__class__, yolo_bboxes)
 
@@ -261,7 +261,7 @@ class CV_TRACKER():
         for bbox in bboxes:
             self.__bbox_colors.append((randint(64, 255), randint(64, 255), randint(64, 255)))
 
-        # 4. using yolov4 to calibrate bbox's height and width or not
+        # 4. using yolov3 to calibrate bbox's height and width or not
         if bbox_calibration == True:
             bboxes = self.__run_bbox_calibration(frame, bboxes, bbox_calibration_strength, False)
             
