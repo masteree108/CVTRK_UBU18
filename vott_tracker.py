@@ -294,11 +294,14 @@ def main(target_path, project_vott_file_path,  json_file_path, video_path, algor
     cvtr = CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, \
             vott_video_fps, cv_tracker_version, bbox_calibration_st, bbox_calibration_strength)
     if bbox_calibration_st == True:
-        bboxes_temp = cvtr. get_bbox_calibration()
-        if len(bboxes_temp) == len(bboxes):
-            bboxes = bboxes_temp
-            #save back calibrated bboxes to source id-asset.json file
-            rvij.update_calibration_bboxes(bboxes_temp)
+        bboxes_temp, calibrate_bbox_failed = cvtr.get_bbox_calibration()
+        if calibrate_bbox_failed == False:
+            if len(bboxes_temp) == len(bboxes):
+                bboxes = bboxes_temp
+                #save back calibrated bboxes to source id-asset.json file
+                rvij.update_calibration_bboxes(bboxes_temp)
+        else:
+            show_info_msg_on_toast("vott_tracker", "cannot detect any objects, please increase bbox_calibrateion level!!")
 
     # initial class WVIJ
     wvij = WVIJ_class_new_and_initial(target_path) 

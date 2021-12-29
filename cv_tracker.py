@@ -102,6 +102,7 @@ class CV_TRACKER():
     __previous_bbox = []
     __calibrated_bboxes = []
     __calibration_IOU = 0.1
+    __calibrate_bbox_failed  = False
 
     def __check_which_frame_number(self, format_value, format_fps):
         for count in range(len(format_fps)):
@@ -189,48 +190,53 @@ class CV_TRACKER():
         #self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:yolo_bboxes')
         #self.pym.PY_LOG(False, 'D', self.__class__, yolo_bboxes)
 
-        calibrated_bboxes = self.__IOU_check_for_first_frame(user_bboxes, yolo_bboxes)
-        self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:user_bboxes')
-        self.pym.PY_LOG(False, 'D', self.__class__, user_bboxes)
+        if len(yolo_bboxes) != 0:
+            calibrated_bboxes = self.__IOU_check_for_first_frame(user_bboxes, yolo_bboxes)
+            self.pym.PY_LOG(False, 'D', self.__class__, '__run_bbox_calibration:user_bboxes')
+            self.pym.PY_LOG(False, 'D', self.__class__, user_bboxes)
 
-        if debug_img_sw == True:
-            compare_frame = frame.copy()
-            for i, yolo_bbox in enumerate(yolo_bboxes):                                                                    
-                (x, y) = (yolo_bbox[0], yolo_bbox[1])
-                (w, h) = (yolo_bbox[2], yolo_bbox[3])
-                cv2.rectangle(compare_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            if debug_img_sw == True:
+                compare_frame = frame.copy()
+                for i, yolo_bbox in enumerate(yolo_bboxes):                                                                    
+                    (x, y) = (yolo_bbox[0], yolo_bbox[1])
+                    (w, h) = (yolo_bbox[2], yolo_bbox[3])
+                    cv2.rectangle(compare_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-            for i, user_bbox in enumerate(user_bboxes):
-                bbox_temp = []
-                bbox_temp.append(int(user_bbox[0]))
-                bbox_temp.append(int(user_bbox[1]))
-                bbox_temp.append(int(user_bbox[2]))
-                bbox_temp.append(int(user_bbox[3]))
-                
-                (x, y) = (bbox_temp[0], bbox_temp[1])
-                (w, h) = (bbox_temp[2], bbox_temp[3])
-                cv2.rectangle(compare_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                for i, user_bbox in enumerate(user_bboxes):
+                    bbox_temp = []
+                    bbox_temp.append(int(user_bbox[0]))
+                    bbox_temp.append(int(user_bbox[1]))
+                    bbox_temp.append(int(user_bbox[2]))
+                    bbox_temp.append(int(user_bbox[3]))
+                    
+                    (x, y) = (bbox_temp[0], bbox_temp[1])
+                    (w, h) = (bbox_temp[2], bbox_temp[3])
+                    cv2.rectangle(compare_frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
 
-            cv2.imwrite("IOU.png", compare_frame)
+                cv2.imwrite("IOU.png", compare_frame)
 
-        # 2. save those bboxes which calibrated
-        update_bboxes = []
-        for i,bbox in enumerate(calibrated_bboxes):
-            bbox_p0 = bbox[0]   #left
-            bbox_p1 = bbox[1]   #top
-            bbox_p2 = bbox[2]   #width
-            bbox_p3 = bbox[3]   #height
-            update_bboxes.append((bbox_p0, bbox_p1, bbox_p2, bbox_p3))
-            self.__calibrated_bboxes.append([])
-            self.__calibrated_bboxes[i].append(bbox_p3) #height
-            self.__calibrated_bboxes[i].append(bbox_p2) #width
-            self.__calibrated_bboxes[i].append(bbox_p0) #left
-            self.__calibrated_bboxes[i].append(bbox_p1) #top
+            # 2. save those bboxes which calibrated
+            update_bboxes = []
+            for i,bbox in enumerate(calibrated_bboxes):
+                bbox_p0 = bbox[0]   #left
+                bbox_p1 = bbox[1]   #top
+                bbox_p2 = bbox[2]   #width
+                bbox_p3 = bbox[3]   #height
+                update_bboxes.append((bbox_p0, bbox_p1, bbox_p2, bbox_p3))
+                self.__calibrated_bboxes.append([])
+                self.__calibrated_bboxes[i].append(bbox_p3) #height
+                self.__calibrated_bboxes[i].append(bbox_p2) #width
+                self.__calibrated_bboxes[i].append(bbox_p0) #left
+                self.__calibrated_bboxes[i].append(bbox_p1) #top
 
-        self.pym.PY_LOG(False, 'D', self.__class__, "__run_bbox_calibration,calibrated_bboxes:")
-        self.pym.PY_LOG(False, 'D', self.__class__, update_bboxes)
+            self.pym.PY_LOG(False, 'D', self.__class__, "__run_bbox_calibration,calibrated_bboxes:")
+            self.pym.PY_LOG(False, 'D', self.__class__, update_bboxes)
 
-        return update_bboxes
+            self.__calibrate_bbox_failed  = False
+            return update_bboxes
+        else:
+            self.__calibrate_bbox_failed  = True
+            return user_bboxes
 
 # public
     def __init__(self, video_path):
@@ -479,5 +485,5 @@ class CV_TRACKER():
         return interval
 
     def get_bbox_calibration(self):
-        return self.__calibrated_bboxes
+        return self.__calibrated_bboxes, self.__calibrate_bbox_failed
 
