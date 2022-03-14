@@ -39,28 +39,19 @@ class mot_class():
         # it should brings (left, top, width, height) to tracker.init() function
         # parameters are left, top , right and bottom in the box 
         # so those parameters need to minus like below to get width and height 
-        left_num = detect_amount_of_people % using_processor_qty
+        assign_num = int(detect_amount_of_people / using_processor_qty)
+        left_num = int(detect_amount_of_people % using_processor_qty)
         process_num = int(detect_amount_of_people / using_processor_qty)
         processor_task_num = []                    
-        process_num_ct = 0                         
         #print("bboxes:")                          
         #print(bboxes)                             
         for i in range(using_processor_qty):       
-            task_ct = 0                            
-            tracker = cv2.MultiTracker_create()    
-            for j in range(process_num_ct, process_num_ct + process_num):
-                task_ct = task_ct + 1              
-                process_num_ct = process_num_ct + 1
-            processor_task_num.append(task_ct)     
+            processor_task_num.append(assign_num)     
         if left_num != 0:                          
-            counter = 0                            
-            k = detect_amount_of_people - using_processor_qty * process_num
-            for k in range(k, k+left_num):         
-                #print("k:%d" % k)                 
-                processor_task_num[counter] = processor_task_num[counter] + 1
-                counter = counter + 1       
-        #print("processor_task_number:")    
-        #print(processor_task_num)          
+            for j in range(left_num):         
+                processor_task_num[j] = processor_task_num[j] + 1
+        print("processor_task_number:")    
+        print(processor_task_num)          
         return processor_task_num    
 
 # public    
