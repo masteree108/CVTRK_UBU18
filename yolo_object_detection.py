@@ -8,7 +8,7 @@ import numpy as np
 import argparse
 import cv2
 import os
-
+import math
 
 class yolo_object_detection():
 # private
@@ -94,10 +94,10 @@ class yolo_object_detection():
         elif bbox_calibration_strength == '1':
             print("           yolo level1              ")
             self.__confidence_setting = 0.6
-            crop_width = 1920
-            crop_height = 1080
-            for crop_x in range(0, 2840, 960):
-                for crop_y in range(0, 1620, 540):
+            crop_width = math.floor(W / 2)
+            crop_height = math.floor(H / 2)
+            for crop_x in range(0, math.floor(W - (crop_width / 2)), math.floor(crop_width / 2)):
+                for crop_y in range(0, math.floor(H - (crop_height / 2)), math.floor(crop_height / 2)):
                     # print("crop_y:%d" % crop_y)
                     # print("crop_y + crop_height:%d" % (crop_y + crop_height))
                     # print("crop_x:%d" % crop_x)
@@ -114,10 +114,10 @@ class yolo_object_detection():
         elif bbox_calibration_strength == '2':
             print("           yolo level2              ")
             self.__confidence_setting = 0.7
-            crop_width = 960
-            crop_height = 540
-            for crop_x in range(0, 3456, 576):
-                for crop_y in range(0, 1944, 324):
+            crop_width = math.floor(W / 4)
+            crop_height = math.floor(H / 4)
+            for crop_x in range(0, math.floor(W - (crop_width * 0.4)), math.floor(crop_width * 0.6)):
+                for crop_y in range(0, math.floor(H - (crop_height * 0.4)), math.floor(crop_height * 0.6)):
                     # print("crop_y:%d" % crop_y)
                     # print("crop_y + crop_height:%d" % (crop_y + crop_height))
                     # print("crop_x:%d" % crop_x)
