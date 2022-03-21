@@ -218,9 +218,10 @@ def CVTR_class_new_and_initial(algorithm, video_path, timestamp, bboxes, rvij, v
     # 1. initial
     cvtr = CVTR.CV_TRACKER(video_path)
     
+    video_size = rvij.get_video_size()
     # 2. opencv setting
     if cvtr.opencv_setting(algorithm, timestamp, bboxes, image_debug, cv_tracker_version, \
-                            bbox_calibration_st, bbox_calibration_strength) == False:
+                            bbox_calibration_st, bbox_calibration_strength, video_size) == False:
         msg = "opencv setting failed"
         cvtr.destroy_debug_window()
         rvij.shut_down_log('process_terminate')

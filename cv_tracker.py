@@ -248,12 +248,13 @@ class CV_TRACKER():
         #deconstructor     
 
     def opencv_setting(self, algorithm, label_object_time_in_video, bboxes, image_debug, \
-                    cv_tracker_version, bbox_calibration, bbox_calibration_strength):
+                    cv_tracker_version, bbox_calibration, bbox_calibration_strength, video_size):
         # 1. make sure video is existed
         self.__video_cap = cv2.VideoCapture(self.__video_path)
         if not self.__video_cap.isOpened():
             self.pym.PY_LOG(False, 'E', self.__class__, 'open video failed!!.')
             return False
+        self.__video_size = video_size
 
         # 2. reading video strat time at the time that user using VoTT to label trakc object
         # *1000 because CAP_PROP_POS_MESE is millisecond
@@ -269,7 +270,9 @@ class CV_TRACKER():
 
         # 4. using yolov3 to calibrate bbox's height and width or not
         if bbox_calibration == True:
-            bboxes = self.__run_bbox_calibration(frame, bboxes, bbox_calibration_strength, False)
+            # avoiding read video size from capture_video_frame  not equl video size by vott setting
+            frame_for_calib = cv2.resize(frame, (video_size[0], video_size[1]))
+            bboxes = self.__run_bbox_calibration(frame_for_calib, bboxes, bbox_calibration_strength, False)
             
         self.MTC = mtc.mot_class(frame, bboxes, algorithm)
 
@@ -384,6 +387,10 @@ class CV_TRACKER():
                 p1 = (int(startX), int(startY))
                 p2 = (int(endX), int(endY))
                 # below rectangle last parameter = return frame picture
+                self.pym.PY_LOG(False, 'D', self.__class__, "self.__video_size[0]:%d" % self.__video_size[0])
+                self.pym.PY_LOG(False, 'D', self.__class__, "self.__video_size[1]:%d" % self.__video_size[1])
+                #frame_for_show = v2.resize(frame, (int(self.__video_size[0]), int(self.__video_size[1])))
+                frame = cv2.resize(frame, (self.__video_size[0], self.__video_size[1]))
                 cv2.rectangle(frame, p1, p2, self.__bbox_colors[i], 3)
                 # add ID onto video
                 cv2.putText(frame, ids[i], (p1), cv2.FONT_HERSHEY_SIMPLEX, 2, self.__bbox_colors[i], 3)
