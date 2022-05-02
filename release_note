@@ -1,4 +1,14 @@
 Version:
+
+	NTUT_VoTT_2022_04_25_v0.0.7
+	new commit:
+		1. avoiding read video size from capture_video_frame not equls video size by vott setting
+		2. Confirm that different size images can be corrected
+		3. (NTUT)(MULTI_CORE_TRACKER) modify assign tracking objects to each core method
+		4. (NTUT) update version and fix if yolov3 can not detect any objects will causes tool crashed
+
+==================================================================================
+Version:
          
   NTUT_VoTT_2021_11_21_v0.0.6
 	new commit:
@@ -81,7 +91,7 @@ Version:
 ==================================================================================
 
 測試結果：
-  2021/11/21
+  2022/04/25
     
     test service tool, below is the results
     ubuntu 20.04: OK, tested by Ivan Yu

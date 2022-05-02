@@ -414,7 +414,7 @@ if __name__ == '__main__':
     # below(True) = exports log.txt
     pym = PYM.LOG(True) 
     # ===========  Global variables set area over==============
-    cv_tracker_version = "v0.0.6_stable"
+    cv_tracker_version = "v0.0.7_stable"
     pym.PY_LOG(False, 'D', py_name, 'vott_tracker.exe version: %s' % cv_tracker_version)
 
     # reading parameter from user pressing vott "auto track" button
